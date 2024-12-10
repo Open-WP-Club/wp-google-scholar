@@ -1,24 +1,91 @@
-.scholar-refresh-form {
-  margin: 20px 0;
-  padding: 15px;
+/* Admin styles for Google Scholar Profile plugin */
+.scholar-usage-instructions {
   background: #fff;
-  border: 1px solid #ccd0d4;
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
-  border-radius: 4px;
+  border: 0.063rem solid #c3c4c7;
+  border-left: 0.25rem solid #2271b1;
+  box-shadow: 0 0.063rem 0.063rem rgba(0, 0, 0, 0.04);
+  margin: 1.25rem 0;
+  padding: 1.25rem;
 }
 
-.scholar-usage-instructions {
-  margin-top: 30px;
-  padding: 15px;
-  background: #fff;
-  border: 1px solid #ccd0d4;
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
-  border-radius: 4px;
+.scholar-usage-instructions h2 {
+  margin-top: 0;
+  color: #1d2327;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.scholar-usage-instructions ol {
+  margin: 1.25rem 0;
+  padding-left: 1.25rem;
+}
+
+.scholar-usage-instructions li {
+  margin-bottom: 0.75rem;
+  line-height: 1.5;
+}
+
+.scholar-usage-instructions ul {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+  list-style-type: disc;
 }
 
 .scholar-usage-instructions code {
   display: inline-block;
-  padding: 5px 10px;
+  padding: 0.25rem 0.5rem;
   background: #f0f0f1;
-  border-radius: 3px;
+  border-radius: 0.188rem;
+  font-size: 0.875rem;
+  color: #1d2327;
+}
+
+.scholar-settings-form {
+  margin-top: 1.25rem;
+  background: #fff;
+  border: 0.063rem solid #c3c4c7;
+  padding: 1.25rem;
+}
+
+.scholar-settings-form .form-table th {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  font-weight: 600;
+}
+
+.scholar-settings-form .form-table td {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+.scholar-settings-form fieldset label {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.scholar-settings-form .description {
+  margin-top: 0.375rem;
+  color: #646970;
+}
+
+.scholar-submit-buttons {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 0.063rem solid #dcdcde;
+}
+
+.scholar-submit-buttons .button {
+  margin-right: 0.625rem;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 782px) {
+  .scholar-settings-form .form-table td {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .scholar-settings-form fieldset label {
+    margin-bottom: 0.75rem;
+  }
 }

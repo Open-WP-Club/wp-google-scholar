@@ -10,29 +10,8 @@ class Scraper
       return false;
     }
 
-    // Get main profile data
-    $main_url = "https://scholar.google.com/citations?user=" . urlencode($profile_id) . "&hl=en";
-    $main_html = $this->fetch_url($main_url);
+    $url = "https://scholar.google.com/citations?user=" . urlencode($profile_id) . "&hl=en";
 
-    if (!$main_html) {
-      return false;
-    }
-
-    $data = $this->parse_html($main_html);
-
-    // Get co-authors data from the co-authors tab
-    $coauthors_url = "https://scholar.google.com/citations?user=" . urlencode($profile_id) . "&hl=en&view_op=list_colleagues";
-    $coauthors_html = $this->fetch_url($coauthors_url);
-
-    if ($coauthors_html) {
-      $this->parse_coauthors_page($coauthors_html, $data);
-    }
-
-    return $data;
-  }
-
-  private function fetch_url($url)
-  {
     $response = wp_remote_get($url, array(
       'timeout' => 30,
       'headers' => array(
@@ -41,11 +20,17 @@ class Scraper
     ));
 
     if (is_wp_error($response)) {
-      error_log('Google Scholar Profile Plugin: Error fetching URL - ' . $response->get_error_message());
+      error_log('Google Scholar Profile Plugin: Error fetching profile - ' . $response->get_error_message());
       return false;
     }
 
-    return wp_remote_retrieve_body($response);
+    $html = wp_remote_retrieve_body($response);
+
+    if (empty($html)) {
+      return false;
+    }
+
+    return $this->parse_html($html);
   }
 
   private function parse_html($html)
@@ -76,56 +61,9 @@ class Scraper
     $this->extract_profile_info($xpath, $data);
     $this->extract_citations($xpath, $data);
     $this->extract_publications($xpath, $data);
+    $this->extract_coauthors($xpath, $data);
 
     return $data;
-  }
-
-  private function parse_coauthors_page($html, &$data)
-  {
-    $doc = new \DOMDocument();
-    libxml_use_internal_errors(true);
-    @$doc->loadHTML($html);
-    libxml_clear_errors();
-    $xpath = new \DOMXPath($doc);
-
-    // Get all co-author entries from the co-authors page
-    $coauthors = $xpath->query("//div[@class='gsc_1usr']");
-
-    foreach ($coauthors as $coauthor) {
-      // Extract name and profile link
-      $name_link = $xpath->query(".//h3[@class='gsc_1usr_name']/a", $coauthor)->item(0);
-
-      // Extract affiliation
-      $affiliation = $xpath->query(".//div[@class='gsc_1usr_aff']", $coauthor)->item(0);
-
-      // Extract interests
-      $interests_nodes = $xpath->query(".//span[@class='gsc_1usr_int']", $coauthor);
-      $interests = array();
-      foreach ($interests_nodes as $interest) {
-        $interests[] = trim($interest->textContent);
-      }
-
-      // Extract metrics
-      $cited_by = $xpath->query(".//div[@class='gsc_1usr_cby']", $coauthor)->item(0);
-
-      if ($name_link) {
-        $coauthor_data = array(
-          'name' => trim($name_link->textContent),
-          'profile_url' => 'https://scholar.google.com' . $name_link->getAttribute('href'),
-          'affiliation' => $affiliation ? trim($affiliation->textContent) : '',
-          'interests' => $interests,
-          'cited_by' => $cited_by ? (int) preg_replace('/\D/', '', $cited_by->textContent) : 0
-        );
-
-        // Get profile image URL from hidden thumbnail
-        $img = $xpath->query(".//div[@class='gsc_1usr_photo']/a/img", $coauthor)->item(0);
-        if ($img) {
-          $coauthor_data['avatar'] = $img->getAttribute('src');
-        }
-
-        $data['coauthors'][] = $coauthor_data;
-      }
-    }
   }
 
   protected function extract_citations($xpath, &$data)
@@ -157,6 +95,9 @@ class Scraper
       $year_node = $xpath->query(".//span[@class='gsc_a_h gsc_a_hc gs_ibl']", $pub)->item(0);
       $citations_node = $xpath->query(".//a[@class='gsc_a_ac gs_ibl']", $pub)->item(0);
 
+      // Get citations by year information
+      $citations_by_year_url = $citations_node ? 'https://scholar.google.com' . $citations_node->getAttribute('href') . '&view_op=view_citation_years' : '';
+
       if ($title_node) {
         $publication = array(
           'title' => trim($title_node->textContent),
@@ -165,12 +106,10 @@ class Scraper
           'authors' => $authors_node ? trim($authors_node->textContent) : '',
           'venue' => $venue_node ? trim($venue_node->textContent) : '',
           'year' => $year_node ? trim($year_node->textContent) : '',
-          'citations' => $citations_node ? intval($citations_node->textContent) : 0
+          'citations' => $citations_node ? intval($citations_node->textContent) : 0,
+          'citations_url' => $citations_node ? 'https://scholar.google.com' . $citations_node->getAttribute('href') : '',
+          'citations_by_year_url' => $citations_by_year_url
         );
-
-        if ($publication['citations'] > 0 && $citations_node) {
-          $publication['citations_url'] = 'https://scholar.google.com' . $citations_node->getAttribute('href');
-        }
 
         $data['publications'][] = $publication;
       }
@@ -197,6 +136,32 @@ class Scraper
     $interests_nodes = $xpath->query("//div[@id='gsc_prf_int']//a");
     foreach ($interests_nodes as $interest) {
       $data['interests'][] = trim($interest->textContent);
+    }
+  }
+
+  protected function extract_coauthors($xpath, &$data)
+  {
+    // Look for co-author entries in the sidebar
+    $coauthors = $xpath->query("//div[contains(@class, 'gsc_rsb_aa')]");
+
+    foreach ($coauthors as $coauthor) {
+      // Get the link element which contains both the URL and name
+      $link = $xpath->query(".//a", $coauthor)->item(0);
+      // Get the affiliation/title
+      $affiliation = $xpath->query(".//div[contains(@class, 'gsc_rsb_a_ext')]", $coauthor)->item(0);
+      // Get the thumbnail image
+      $img = $xpath->query(".//img", $coauthor)->item(0);
+
+      if ($link) {
+        $coauthor_data = array(
+          'name' => trim($link->textContent),
+          'profile_url' => 'https://scholar.google.com' . $link->getAttribute('href'),
+          'title' => $affiliation ? trim($affiliation->textContent) : '',
+          'avatar' => $img ? $img->getAttribute('src') : ''
+        );
+
+        $data['coauthors'][] = $coauthor_data;
+      }
     }
   }
 }

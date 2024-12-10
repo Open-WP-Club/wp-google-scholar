@@ -82,38 +82,45 @@ class Shortcode
     }
 
     echo '<div class="scholar-publications">
-            <h2>' . __('Publications', 'scholar-profile') . '</h2>';
+            <h2>' . __('Publications', 'scholar-profile') . '</h2>
+            <table class="scholar-publications-table">
+                <thead>
+                    <tr>
+                        <th class="publication-title">' . __('Title', 'scholar-profile') . '</th>
+                        <th class="publication-year">' . __('Year', 'scholar-profile') . '</th>
+                        <th class="publication-citations">' . __('Cited by', 'scholar-profile') . '</th>
+                    </tr>
+                </thead>
+                <tbody>';
 
     foreach ($data['publications'] as $pub) {
-      echo '<div class="scholar-publication">
-                <h3><a href="' . esc_url($pub['google_scholar_url']) . '" 
-                   class="scholar-publication-title" 
-                   target="_blank" rel="noopener noreferrer">'
-        . esc_html($pub['title']) . '</a></h3>
-                <div class="scholar-publication-authors">'
+      echo '<tr>
+                <td class="publication-info">
+                    <a href="' . esc_url($pub['google_scholar_url']) . '" 
+                       class="scholar-publication-title" 
+                       target="_blank" rel="noopener noreferrer">'
+        . esc_html($pub['title']) . '</a>
+                    <div class="scholar-publication-authors">'
         . esc_html($pub['authors']) . '</div>
-                <div class="scholar-publication-meta">
-                    <span class="scholar-publication-venue">'
-        . esc_html($pub['venue'])
-        . ($pub['year'] ? ', ' . esc_html($pub['year']) : '')
-        . '</span>';
+                    <div class="scholar-publication-venue">'
+        . esc_html($pub['venue']) . '</div>
+                </td>
+                <td class="publication-year">'
+        . esc_html($pub['year']) . '</td>
+                <td class="publication-citations">';
 
       if ($pub['citations'] > 0) {
-        echo '<span class="scholar-citation-count">
-                        <a href="' . esc_url($pub['citations_url']) . '" 
-                           target="_blank" rel="noopener noreferrer">
-                           ' . sprintf(
-          _n('Cited by %s', 'Cited by %s', $pub['citations'], 'scholar-profile'),
-          number_format($pub['citations'])
-        ) . '
-                        </a>
-                    </span>';
+        echo '<a href="' . esc_url($pub['citations_url']) . '" 
+                     target="_blank" rel="noopener noreferrer">'
+          . number_format($pub['citations']) . '</a>';
+      } else {
+        echo '0';
       }
 
-      echo '</div></div>';
+      echo '</td></tr>';
     }
 
-    echo '</div>';
+    echo '</tbody></table></div>';
   }
 
   protected function render_metrics($data)
@@ -178,35 +185,12 @@ class Shortcode
                        target="_blank" rel="noopener noreferrer">'
         . esc_html($coauthor['name']) . '</a>';
 
-      if (!empty($coauthor['affiliation'])) {
+      if (!empty($coauthor['title'])) {
         echo '<div class="scholar-coauthor-affiliation">'
-          . esc_html($coauthor['affiliation']) . '</div>';
+          . esc_html($coauthor['title']) . '</div>';
       }
 
-      echo '</div>'; // Close scholar-coauthor-main
-
-      if (!empty($coauthor['cited_by'])) {
-        echo '<div class="scholar-coauthor-citations">'
-          . sprintf(
-            _n('Cited by %s', 'Cited by %s', $coauthor['cited_by'], 'scholar-profile'),
-            number_format($coauthor['cited_by'])
-          )
-          . '</div>';
-      }
-
-      echo '</div>'; // Close scholar-coauthor-header
-
-      // Render interests if available
-      if (!empty($coauthor['interests'])) {
-        echo '<div class="scholar-coauthor-interests">';
-        foreach ($coauthor['interests'] as $interest) {
-          echo '<span class="scholar-coauthor-interest">'
-            . esc_html($interest) . '</span>';
-        }
-        echo '</div>';
-      }
-
-      echo '</div>'; // Close scholar-coauthor
+      echo '</div></div></div>';
     }
 
     echo '</div>';
