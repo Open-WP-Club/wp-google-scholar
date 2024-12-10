@@ -67,6 +67,24 @@ class Scraper
     return $data;
   }
 
+  protected function extract_citations($xpath, &$data)
+  {
+    // Get all citation table cells
+    $table_cells = $xpath->query("//table[@id='gsc_rsb_st']//td[@class='gsc_rsb_std']");
+
+    if ($table_cells->length >= 6) {
+      // All time citations
+      $data['citations']['total'] = intval(trim($table_cells->item(0)->textContent));
+      $data['citations']['h_index'] = intval(trim($table_cells->item(2)->textContent));
+      $data['citations']['i10_index'] = intval(trim($table_cells->item(4)->textContent));
+
+      // Since 2019 citations
+      $data['citations']['since_2019'] = intval(trim($table_cells->item(1)->textContent));
+      $data['citations']['h_index_2019'] = intval(trim($table_cells->item(3)->textContent));
+      $data['citations']['i10_index_2019'] = intval(trim($table_cells->item(5)->textContent));
+    }
+  }
+
   protected function extract_publications($xpath, &$data)
   {
     $publications = $xpath->query("//tr[@class='gsc_a_tr']");
@@ -120,6 +138,32 @@ class Scraper
     $interests_nodes = $xpath->query("//div[@id='gsc_prf_int']//a");
     foreach ($interests_nodes as $interest) {
       $data['interests'][] = trim($interest->textContent);
+    }
+  }
+
+  protected function extract_coauthors($xpath, &$data)
+  {
+    // Look for co-author entries in the sidebar
+    $coauthors = $xpath->query("//div[contains(@class, 'gsc_rsb_aa')]");
+
+    foreach ($coauthors as $coauthor) {
+      // Get the link element which contains both the URL and name
+      $link = $xpath->query(".//a", $coauthor)->item(0);
+      // Get the affiliation/title
+      $affiliation = $xpath->query(".//div[contains(@class, 'gsc_rsb_a_ext')]", $coauthor)->item(0);
+      // Get the thumbnail image
+      $img = $xpath->query(".//img", $coauthor)->item(0);
+
+      if ($link) {
+        $coauthor_data = array(
+          'name' => trim($link->textContent),
+          'profile_url' => 'https://scholar.google.com' . $link->getAttribute('href'),
+          'title' => $affiliation ? trim($affiliation->textContent) : '',
+          'avatar' => $img ? $img->getAttribute('src') : ''
+        );
+
+        $data['coauthors'][] = $coauthor_data;
+      }
     }
   }
 }
