@@ -1,6 +1,7 @@
 /* Admin Pages General Styling */
 .scholar-settings-form {
   margin-top: 1.5rem;
+  max-width: 50rem;
 }
 
 /* Usage Instructions Box */
@@ -11,6 +12,7 @@
   border: 0.0625rem solid #ccd0d4;
   box-shadow: 0 0.0625rem 0.0625rem rgba(0, 0, 0, 0.04);
   border-radius: 0.25rem;
+  max-width: 50rem;
 }
 
 .scholar-usage-instructions h3 {
@@ -31,7 +33,7 @@
 /* Form Elements */
 .form-table th {
   padding: 1.25rem 0.625rem 1.25rem 0;
-  width: 11rem;
+  width: 12.5rem;
 }
 
 .form-table td {
@@ -64,25 +66,54 @@
   margin: 0.3125rem 0 0;
 }
 
-/* Button Group */
+/* Button Groups */
 .scholar-button-group {
   margin-top: 1.25rem;
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
   padding: 0.625rem 0;
 }
 
-.scholar-button-group .button {
+.scholar-refresh-section {
+  margin-top: 1.25rem;
+  padding: 1.25rem;
+  background: #fff;
+  border: 0.0625rem solid #ccd0d4;
+  border-radius: 0.25rem;
+  max-width: 50rem;
+}
+
+.scholar-refresh-section .button {
   min-height: 2rem;
   line-height: 2rem;
   padding: 0 1rem;
 }
 
-.scholar-button-group .description {
+.scholar-refresh-section .description {
   margin: 0 0 0 0.625rem;
   padding: 0;
-  line-height: 1.4;
+  line-height: 2rem;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Messages */
+.notice {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border-radius: 0.25rem;
+  max-width: 50rem;
+}
+
+.notice p {
+  margin: 0;
+  padding: 0;
+}
+
+/* Select Dropdown */
+.form-table select {
+  min-width: 12rem;
+  height: 2rem;
+  line-height: 2rem;
+  padding: 0 1.5rem 0 0.5rem;
 }
 
 /* Responsive Adjustments */
@@ -99,33 +130,42 @@
     padding-top: 0.5rem;
   }
 
+  .scholar-refresh-section {
+    padding: 1rem;
+  }
+
+  .scholar-refresh-section .description {
+    display: block;
+    margin: 0.5rem 0 0;
+    line-height: 1.4;
+  }
+
   .scholar-button-group {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.75rem;
   }
+}
 
-  .scholar-button-group .description {
-    margin: 0.5rem 0 0 0;
+/* Small Screen Adjustments */
+@media screen and (max-width: 30rem) {
+
+  .scholar-settings-form,
+  .scholar-usage-instructions,
+  .scholar-refresh-section,
+  .notice {
+    max-width: 100%;
   }
-}
 
-/* Error and Success Messages */
-.notice {
-  margin: 1rem 0;
-  padding: 0.75rem 1rem;
-  border-radius: 0.25rem;
-}
+  .form-table input[type="text"] {
+    max-width: 100%;
+  }
 
-.notice p {
-  margin: 0;
-  padding: 0;
-}
+  .scholar-refresh-section {
+    padding: 0.75rem;
+  }
 
-/* Select Dropdown */
-.form-table select {
-  min-width: 12rem;
-  height: 2rem;
-  line-height: 2rem;
-  padding: 0 1.5rem 0 0.5rem;
+  .scholar-usage-instructions {
+    padding: 0.75rem;
+  }
 }
