@@ -11,6 +11,7 @@ class Settings
   {
     add_action('admin_menu', array($this, 'add_menu_page'));
     add_action('admin_init', array($this, 'register_settings'));
+    add_action('admin_post_refresh_scholar_profile', array($this, 'handle_manual_refresh'));
     add_filter(
       'plugin_action_links_' . plugin_basename(WP_SCHOLAR_PLUGIN_DIR . 'wp-google-scholar.php'),
       array($this, 'add_settings_link')
@@ -39,43 +40,71 @@ class Settings
     );
   }
 
+  public function handle_manual_refresh()
+  {
+    if (!current_user_can('manage_options')) {
+      wp_die(__('You do not have sufficient permissions to access this page.'));
+    }
+
+    // Verify nonce
+    if (!isset($_POST['scholar_refresh_nonce']) || !wp_verify_nonce($_POST['scholar_refresh_nonce'], 'refresh_scholar_profile')) {
+      wp_die(__('Security check failed.'));
+    }
+
+    $options = get_option($this->option_name);
+    if (empty($options['profile_id'])) {
+      wp_redirect(add_query_arg(
+        array('page' => $this->page_slug, 'refresh' => 'failed', 'message' => 'no_profile_id'),
+        admin_url('options-general.php')
+      ));
+      exit;
+    }
+
+    $scraper = new Scraper();
+    $data = $scraper->scrape($options['profile_id']);
+
+    if ($data) {
+      update_option('scholar_profile_data', $data);
+      update_option('scholar_profile_last_update', time());
+      wp_redirect(add_query_arg(
+        array('page' => $this->page_slug, 'refresh' => 'success'),
+        admin_url('options-general.php')
+      ));
+    } else {
+      wp_redirect(add_query_arg(
+        array('page' => $this->page_slug, 'refresh' => 'failed'),
+        admin_url('options-general.php')
+      ));
+    }
+    exit;
+  }
+
   public function render_settings_page()
   {
     if (!current_user_can('manage_options')) {
       return;
     }
 
-    $options = get_option($this->option_name, array(
-      'profile_id' => '',
-      'show_avatar' => '1',
-      'show_info' => '1',
-      'show_publications' => '1',
-      'show_coauthors' => '1',
-      'update_frequency' => 'weekly'
-    ));
+    $options = get_option($this->option_name);
 
-    // Handle manual refresh
-    if (
-      isset($_POST['refresh_profile']) &&
-      check_admin_referer('refresh_profile')
-    ) {
-      $scraper = new Scraper();
-      $data = $scraper->scrape($options['profile_id']);
-
-      if ($data) {
-        update_option('scholar_profile_data', $data);
-        update_option('scholar_profile_last_update', time());
+    // Handle refresh status messages
+    if (isset($_GET['refresh'])) {
+      if ($_GET['refresh'] === 'success') {
         add_settings_error(
           'scholar_profile_messages',
           'profile_updated',
           __('Profile data refreshed successfully!', 'scholar-profile'),
           'updated'
         );
-      } else {
+      } elseif ($_GET['refresh'] === 'failed') {
+        $message = isset($_GET['message']) && $_GET['message'] === 'no_profile_id'
+          ? __('Please set a Profile ID before refreshing.', 'scholar-profile')
+          : __('Failed to refresh profile data. Please check your Profile ID and try again.', 'scholar-profile');
+
         add_settings_error(
           'scholar_profile_messages',
           'profile_update_failed',
-          __('Failed to refresh profile data. Please check your Profile ID and try again.', 'scholar-profile'),
+          $message,
           'error'
         );
       }

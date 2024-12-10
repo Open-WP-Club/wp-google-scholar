@@ -103,20 +103,23 @@ if (!isset($options)) {
 
     <div class="scholar-button-group">
       <?php submit_button(__('Save Settings', 'scholar-profile'), 'primary', 'submit', false); ?>
+    </div>
+  </form>
 
-      <!-- Separate form for refresh action -->
-      <form method="post" action="" style="display: inline;">
-        <?php wp_nonce_field('refresh_profile_data', 'refresh_nonce'); ?>
-        <input type="submit"
-          name="refresh_profile"
-          class="button button-secondary"
-          value="<?php esc_attr_e('Refresh Profile Data Now', 'scholar-profile'); ?>">
-      </form>
+  <!-- Separate form for refresh action -->
+  <div class="scholar-refresh-section" style="margin-top: 20px;">
+    <form method="post" action="<?php echo admin_url('admin-post.php'); ?>">
+      <input type="hidden" name="action" value="refresh_scholar_profile">
+      <?php wp_nonce_field('refresh_scholar_profile', 'scholar_refresh_nonce'); ?>
+      <input type="submit"
+        name="refresh_profile"
+        class="button button-secondary"
+        value="<?php esc_attr_e('Refresh Profile Data Now', 'scholar-profile'); ?>">
 
       <?php
       $last_update = get_option('scholar_profile_last_update');
       if ($last_update) {
-        echo '<p class="description">' .
+        echo '<p class="description" style="display: inline-block; margin-left: 10px;">' .
           sprintf(
             __('Last updated: %s', 'scholar-profile'),
             date_i18n(get_option('date_format') . ' ' . get_option('time_format'), $last_update)
@@ -124,6 +127,6 @@ if (!isset($options)) {
           '</p>';
       }
       ?>
-    </div>
-  </form>
+    </form>
+  </div>
 </div>
