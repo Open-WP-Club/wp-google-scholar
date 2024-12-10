@@ -1,0 +1,131 @@
+/* Admin Pages General Styling */
+.scholar-settings-form {
+  margin-top: 1.5rem;
+}
+
+/* Usage Instructions Box */
+.scholar-usage-instructions {
+  margin-bottom: 1.25rem;
+  padding: 1rem;
+  background: #fff;
+  border: 0.0625rem solid #ccd0d4;
+  box-shadow: 0 0.0625rem 0.0625rem rgba(0, 0, 0, 0.04);
+  border-radius: 0.25rem;
+}
+
+.scholar-usage-instructions h3 {
+  margin-top: 0;
+  font-size: 1.125rem;
+  margin-bottom: 0.75rem;
+}
+
+.scholar-usage-instructions code {
+  display: inline-block;
+  padding: 0.3125rem 0.625rem;
+  background: #f0f0f1;
+  border-radius: 0.1875rem;
+  font-size: 0.875rem;
+  font-family: monospace;
+}
+
+/* Form Elements */
+.form-table th {
+  padding: 1.25rem 0.625rem 1.25rem 0;
+  width: 11rem;
+}
+
+.form-table td {
+  padding: 1rem 0.625rem;
+}
+
+.form-table input[type="text"] {
+  width: 100%;
+  max-width: 25rem;
+}
+
+/* Checkboxes Group */
+.form-table fieldset {
+  margin: 0.3125rem 0;
+}
+
+.form-table fieldset label {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.form-table fieldset input[type="checkbox"] {
+  margin-right: 0.5rem;
+}
+
+/* Description Text */
+.description {
+  font-size: 0.875rem;
+  color: #666;
+  margin: 0.3125rem 0 0;
+}
+
+/* Button Group */
+.scholar-button-group {
+  margin-top: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.625rem 0;
+}
+
+.scholar-button-group .button {
+  min-height: 2rem;
+  line-height: 2rem;
+  padding: 0 1rem;
+}
+
+.scholar-button-group .description {
+  margin: 0 0 0 0.625rem;
+  padding: 0;
+  line-height: 1.4;
+}
+
+/* Responsive Adjustments */
+@media screen and (max-width: 48rem) {
+  .form-table th {
+    width: 100%;
+    display: block;
+    padding-bottom: 0;
+  }
+
+  .form-table td {
+    width: 100%;
+    display: block;
+    padding-top: 0.5rem;
+  }
+
+  .scholar-button-group {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .scholar-button-group .description {
+    margin: 0.5rem 0 0 0;
+  }
+}
+
+/* Error and Success Messages */
+.notice {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border-radius: 0.25rem;
+}
+
+.notice p {
+  margin: 0;
+  padding: 0;
+}
+
+/* Select Dropdown */
+.form-table select {
+  min-width: 12rem;
+  height: 2rem;
+  line-height: 2rem;
+  padding: 0 1.5rem 0 0.5rem;
+}
