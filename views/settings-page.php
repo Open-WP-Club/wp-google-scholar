@@ -20,26 +20,12 @@ if (!isset($options)) {
   <h2><?php _e('Google Scholar Profile Settings', 'scholar-profile'); ?></h2>
   <?php settings_errors('scholar_profile_messages'); ?>
 
-  <!-- Manual Refresh Form -->
-  <form method="post" class="scholar-refresh-form">
-    <?php wp_nonce_field('refresh_profile'); ?>
-    <input type="submit"
-      name="refresh_profile"
-      class="button button-secondary"
-      value="<?php esc_attr_e('Refresh Profile Data Now', 'scholar-profile'); ?>">
-
-    <?php
-    $last_update = get_option('scholar_profile_last_update');
-    if ($last_update) {
-      echo '<p class="description">' .
-        sprintf(
-          __('Last updated: %s', 'scholar-profile'),
-          date_i18n(get_option('date_format') . ' ' . get_option('time_format'), $last_update)
-        ) .
-        '</p>';
-    }
-    ?>
-  </form>
+  <!-- Usage Instructions -->
+  <div class="scholar-usage-instructions">
+    <h3><?php _e('Usage Instructions', 'scholar-profile'); ?></h3>
+    <p><?php _e('Use this shortcode to display your Google Scholar profile:', 'scholar-profile'); ?></p>
+    <code>[scholar_profile]</code>
+  </div>
 
   <!-- Settings Form -->
   <form method="post" action="options.php" class="scholar-settings-form">
@@ -115,13 +101,29 @@ if (!isset($options)) {
       </tr>
     </table>
 
-    <?php submit_button(__('Save Settings', 'scholar-profile')); ?>
-  </form>
+    <div class="scholar-button-group">
+      <?php submit_button(__('Save Settings', 'scholar-profile'), 'primary', 'submit', false); ?>
 
-  <!-- Usage Instructions -->
-  <div class="scholar-usage-instructions">
-    <h3><?php _e('Usage Instructions', 'scholar-profile'); ?></h3>
-    <p><?php _e('Use this shortcode to display your Google Scholar profile:', 'scholar-profile'); ?></p>
-    <code>[scholar_profile]</code>
-  </div>
+      <!-- Separate form for refresh action -->
+      <form method="post" action="" style="display: inline;">
+        <?php wp_nonce_field('refresh_profile_data', 'refresh_nonce'); ?>
+        <input type="submit"
+          name="refresh_profile"
+          class="button button-secondary"
+          value="<?php esc_attr_e('Refresh Profile Data Now', 'scholar-profile'); ?>">
+      </form>
+
+      <?php
+      $last_update = get_option('scholar_profile_last_update');
+      if ($last_update) {
+        echo '<p class="description">' .
+          sprintf(
+            __('Last updated: %s', 'scholar-profile'),
+            date_i18n(get_option('date_format') . ' ' . get_option('time_format'), $last_update)
+          ) .
+          '</p>';
+      }
+      ?>
+    </div>
+  </form>
 </div>
