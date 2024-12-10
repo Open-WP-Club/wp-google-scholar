@@ -1,0 +1,162 @@
+.scholar-profile {
+  max-width: 1200px;
+  margin: 20px auto;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+  display: grid;
+  grid-template-columns: 70% 30%;
+  gap: 30px;
+}
+
+.scholar-main {
+  grid-column: 1;
+}
+
+.scholar-sidebar {
+  grid-column: 2;
+}
+
+.scholar-header {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.scholar-avatar {
+  flex-shrink: 0;
+}
+
+.scholar-avatar img {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.scholar-basic-info {
+  flex-grow: 1;
+}
+
+.scholar-name {
+  font-size: 24px;
+  font-weight: normal;
+  margin: 0 0 5px 0;
+  color: #202124;
+}
+
+.scholar-affiliation {
+  color: #666;
+  margin: 0 0 10px 0;
+  font-size: 14px;
+}
+
+.scholar-fields {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.scholar-field {
+  color: #1a73e8;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.scholar-field:hover {
+  text-decoration: underline;
+}
+
+.scholar-metrics-box {
+  background: #f8f9fa;
+  border: 1px solid #dadce0;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.scholar-metrics-title {
+  font-size: 18px;
+  color: #202124;
+  margin: 0 0 15px 0;
+}
+
+.scholar-metrics-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.scholar-metrics-table th,
+.scholar-metrics-table td {
+  padding: 8px;
+  text-align: center;
+  border-bottom: 1px solid #dadce0;
+}
+
+.scholar-metrics-table th {
+  font-weight: normal;
+  color: #666;
+}
+
+.scholar-coauthors {
+  margin-top: 20px;
+}
+
+.scholar-coauthor {
+  display: flex;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #dadce0;
+}
+
+.scholar-coauthor-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 15px;
+}
+
+.scholar-coauthor-info {
+  flex-grow: 1;
+}
+
+.scholar-coauthor-name {
+  color: #1a73e8;
+  text-decoration: none;
+  font-size: 14px;
+  margin: 0;
+}
+
+.scholar-coauthor-title {
+  color: #666;
+  font-size: 12px;
+  margin: 3px 0 0 0;
+}
+
+.scholar-publications {
+  margin-top: 30px;
+}
+
+.scholar-publication {
+  padding: 15px 0;
+  border-bottom: 1px solid #dadce0;
+}
+
+.scholar-publication-title {
+  color: #1a73e8;
+  text-decoration: none;
+  font-size: 16px;
+  margin: 0 0 5px 0;
+}
+
+.scholar-publication-authors,
+.scholar-publication-venue {
+  color: #666;
+  font-size: 13px;
+  margin: 3px 0;
+}
+
+.scholar-citation-count {
+  color: #666;
+  font-size: 13px;
+}

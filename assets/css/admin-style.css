@@ -1,0 +1,24 @@
+.scholar-refresh-form {
+  margin: 20px 0;
+  padding: 15px;
+  background: #fff;
+  border: 1px solid #ccd0d4;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+  border-radius: 4px;
+}
+
+.scholar-usage-instructions {
+  margin-top: 30px;
+  padding: 15px;
+  background: #fff;
+  border: 1px solid #ccd0d4;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+  border-radius: 4px;
+}
+
+.scholar-usage-instructions code {
+  display: inline-block;
+  padding: 5px 10px;
+  background: #f0f0f1;
+  border-radius: 3px;
+}
