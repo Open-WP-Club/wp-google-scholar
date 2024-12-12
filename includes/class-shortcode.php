@@ -125,7 +125,16 @@ class Shortcode
 
   protected function render_metrics($data)
   {
-    if (empty($data['citations'])) {
+    // Check if citations data exists and has non-zero values
+    if (
+      empty($data['citations']) ||
+      ($data['citations']['total'] === 0 &&
+        $data['citations']['h_index'] === 0 &&
+        $data['citations']['i10_index'] === 0 &&
+        $data['citations']['since_2019'] === 0 &&
+        $data['citations']['h_index_2019'] === 0 &&
+        $data['citations']['i10_index_2019'] === 0)
+    ) {
       return;
     }
 
