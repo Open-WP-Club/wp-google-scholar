@@ -66,46 +66,35 @@
   margin: 0.3125rem 0 0;
 }
 
-/* Button Groups */
-.scholar-button-group {
-  margin-top: 1.25rem;
-  padding: 0.625rem 0;
-}
-
-.scholar-refresh-section {
+/* Actions Row */
+.scholar-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
   margin-top: 1.25rem;
   padding: 1.25rem;
   background: #fff;
   border: 0.0625rem solid #ccd0d4;
   border-radius: 0.25rem;
-  max-width: 50rem;
 }
 
-.scholar-refresh-section .button {
-  min-height: 2rem;
-  line-height: 2rem;
-  padding: 0 1rem;
-}
-
-.scholar-refresh-section .description {
-  margin: 0 0 0 0.625rem;
-  padding: 0;
-  line-height: 2rem;
-  display: inline-block;
-  vertical-align: middle;
-}
-
-/* Messages */
-.notice {
-  margin: 1rem 0;
-  padding: 0.75rem 1rem;
-  border-radius: 0.25rem;
-  max-width: 50rem;
-}
-
-.notice p {
+.scholar-save-button {
   margin: 0;
-  padding: 0;
+}
+
+.scholar-refresh-button {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.scholar-refresh-button .button {
+  margin: 0;
+}
+
+.last-update {
+  color: #666;
+  font-size: 0.875rem;
 }
 
 /* Select Dropdown */
@@ -130,20 +119,20 @@
     padding-top: 0.5rem;
   }
 
-  .scholar-refresh-section {
-    padding: 1rem;
-  }
-
-  .scholar-refresh-section .description {
-    display: block;
-    margin: 0.5rem 0 0;
-    line-height: 1.4;
-  }
-
-  .scholar-button-group {
+  .scholar-actions-row {
     flex-direction: column;
     align-items: flex-start;
+    padding: 1rem;
     gap: 0.75rem;
+  }
+
+  .scholar-refresh-button {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .last-update {
+    margin-top: 0.5rem;
   }
 }
 
@@ -152,8 +141,7 @@
 
   .scholar-settings-form,
   .scholar-usage-instructions,
-  .scholar-refresh-section,
-  .notice {
+  .scholar-actions-row {
     max-width: 100%;
   }
 
@@ -161,7 +149,7 @@
     max-width: 100%;
   }
 
-  .scholar-refresh-section {
+  .scholar-actions-row {
     padding: 0.75rem;
   }
 
