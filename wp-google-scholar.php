@@ -128,19 +128,6 @@ register_deactivation_hook(__FILE__, function () {
   $scheduler->deactivate();
 });
 
-// Add plugin action links
-function wp_scholar_plugin_action_links($links)
-{
-  $settings_link = sprintf(
-    '<a href="%s">%s</a>',
-    admin_url('options-general.php?page=scholar-profile-settings'),
-    __('Settings', 'scholar-profile')
-  );
-  array_unshift($links, $settings_link);
-  return $links;
-}
-add_filter('plugin_action_links_' . plugin_basename(__FILE__), 'wp_scholar_plugin_action_links');
-
 // Debug logging function
 function wp_scholar_log($message)
 {
