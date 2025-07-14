@@ -4,6 +4,28 @@
   margin: 0;
 }
 
+/* Two Column Layout - FORCE FLEX */
+.scholar-admin-layout {
+  display: flex !important;
+  gap: 24px;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.scholar-main-content {
+  flex: 0 0 80% !important;
+  /* 80% width for main content */
+  min-width: 0;
+  /* Prevent flex item from overflowing */
+  width: 80%;
+}
+
+.scholar-sidebar-content {
+  flex: 0 0 20% !important;
+  /* 20% width for sidebar */
+  width: 20%;
+  display: flex;
+  flex-direction: column;
   gap: 16px;
 }
 
