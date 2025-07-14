@@ -204,33 +204,34 @@ $has_profile_data = !empty($profile_data) && !empty($profile_data['name']);
 
         <div class="scholar-form-actions">
           <?php submit_button(__('Save Settings', 'scholar-profile'), 'primary', 'submit', false); ?>
-
-          <!-- Refresh Profile Form -->
-          <div class="scholar-refresh-section">
-            <form method="post" action="<?php echo admin_url('admin-post.php'); ?>" style="display: inline;">
-              <input type="hidden" name="action" value="refresh_scholar_profile">
-              <?php wp_nonce_field('refresh_scholar_profile', 'scholar_refresh_nonce'); ?>
-              <input type="submit"
-                name="refresh_profile"
-                class="button button-secondary"
-                value="<?php esc_attr_e('Refresh Profile Data', 'scholar-profile'); ?>">
-            </form>
-          </div>
         </div>
       </form>
-    </div>
 
-    <!-- Usage Instructions -->
-    <div class="scholar-usage-card">
-      <h3><?php _e('Usage', 'scholar-profile'); ?></h3>
-      <p><?php _e('Add your Google Scholar profile to any post or page using:', 'scholar-profile'); ?></p>
-      <div class="scholar-shortcode">
-        <code>[scholar_profile]</code>
-        <button type="button" class="scholar-copy-btn" onclick="navigator.clipboard.writeText('[scholar_profile]')" title="<?php esc_attr_e('Copy shortcode', 'scholar-profile'); ?>">
-          <span class="dashicons dashicons-admin-page"></span>
-        </button>
+      <!-- Separate Refresh Form (outside of settings form) -->
+      <div class="scholar-refresh-section">
+        <form method="post" action="<?php echo admin_url('admin-post.php'); ?>">
+          <input type="hidden" name="action" value="refresh_scholar_profile">
+          <?php wp_nonce_field('refresh_scholar_profile', 'scholar_refresh_nonce'); ?>
+          <input type="submit"
+            name="refresh_profile"
+            class="button button-secondary"
+            value="<?php esc_attr_e('Refresh Profile Data', 'scholar-profile'); ?>">
+        </form>
       </div>
     </div>
-
   </div>
+
+  <!-- Usage Instructions -->
+  <div class="scholar-usage-card">
+    <h3><?php _e('Usage', 'scholar-profile'); ?></h3>
+    <p><?php _e('Add your Google Scholar profile to any post or page using:', 'scholar-profile'); ?></p>
+    <div class="scholar-shortcode">
+      <code>[scholar_profile]</code>
+      <button type="button" class="scholar-copy-btn" onclick="navigator.clipboard.writeText('[scholar_profile]')" title="<?php esc_attr_e('Copy shortcode', 'scholar-profile'); ?>">
+        <span class="dashicons dashicons-admin-page"></span>
+      </button>
+    </div>
+  </div>
+
+</div>
 </div>

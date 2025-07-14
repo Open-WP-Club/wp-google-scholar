@@ -157,6 +157,11 @@ class Settings
     $options = get_option($this->option_name);
     $messages = array();
 
+    // Debug: Log all URL parameters when DEBUG is enabled
+    if (defined('WP_DEBUG') && WP_DEBUG) {
+      wp_scholar_log('Settings page URL parameters: ' . print_r($_GET, true));
+    }
+
     // Handle settings validation errors
     if (isset($_GET['settings-error'])) {
       $messages[] = array(
