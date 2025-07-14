@@ -14,7 +14,8 @@ class Shortcode
     // Parse shortcode attributes
     $atts = shortcode_atts(array(
       'sort_by' => '',
-      'sort_order' => 'desc'
+      'sort_order' => 'desc',
+      'per_page' => 20
     ), $atts, 'scholar_profile');
 
     $options = get_option('scholar_profile_settings');
@@ -29,15 +30,36 @@ class Shortcode
       $data['publications'] = $this->sort_publications($data['publications'], $atts['sort_by'], $atts['sort_order']);
     }
 
+    // Get current page from URL parameter
+    $current_page = max(1, intval($_GET['scholar_page'] ?? 1));
+    $per_page = max(1, min(100, intval($atts['per_page']))); // Limit between 1-100
+
+    // Calculate pagination
+    $total_publications = count($data['publications']);
+    $total_pages = ceil($total_publications / $per_page);
+    $current_page = min($current_page, $total_pages); // Ensure current page doesn't exceed total
+
+    // Slice publications for current page
+    $offset = ($current_page - 1) * $per_page;
+    $paged_publications = array_slice($data['publications'], $offset, $per_page);
+
+    // Store pagination info for JavaScript
+    $pagination_data = array(
+      'current_page' => $current_page,
+      'total_pages' => $total_pages,
+      'per_page' => $per_page,
+      'total_publications' => $total_publications
+    );
+
     ob_start();
 
-    // Main wrapper
-    echo '<div class="scholar-profile">';
+    // Main wrapper with pagination data
+    echo '<div class="scholar-profile" data-pagination=\'' . json_encode($pagination_data) . '\'>';
 
     // Main content section
     echo '<div class="scholar-main">';
     $this->render_header($data, $options);
-    $this->render_publications($data, $options);
+    $this->render_publications($data, $options, $paged_publications, $current_page, $total_pages, $per_page);
     echo '</div>'; // Close main section
 
     // Sidebar
@@ -86,15 +108,36 @@ class Shortcode
     echo '</div></div>';
   }
 
-  protected function render_publications($data, $options)
+  protected function render_publications($data, $options, $paged_publications, $current_page, $total_pages, $per_page)
   {
     if (!$options['show_publications'] || empty($data['publications'])) {
       return;
     }
 
+    $total_publications = count($data['publications']);
+    $start_index = ($current_page - 1) * $per_page + 1;
+    $end_index = min($current_page * $per_page, $total_publications);
+
     echo '<div class="scholar-publications">
-            <h2>' . __('Publications', 'scholar-profile') . '</h2>
-            <table class="scholar-publications-table" data-sortable="true">
+            <div class="scholar-publications-header">
+                <h2>' . __('Publications', 'scholar-profile') . '</h2>';
+
+    // Show publication count and pagination info
+    if ($total_pages > 1) {
+      echo '<div class="scholar-publications-info">
+                <span class="scholar-publications-count">' .
+        sprintf(
+          __('Showing %d-%d of %d publications', 'scholar-profile'),
+          $start_index,
+          $end_index,
+          $total_publications
+        ) . '</span>
+            </div>';
+    }
+
+    echo '</div>';
+
+    echo '<table class="scholar-publications-table" data-sortable="true">
                 <thead>
                     <tr>
                         <th class="publication-title sortable" data-sort="title" tabindex="0" role="button" aria-label="' . __('Sort by title', 'scholar-profile') . '">
@@ -113,7 +156,7 @@ class Shortcode
                 </thead>
                 <tbody class="publications-tbody">';
 
-    foreach ($data['publications'] as $pub) {
+    foreach ($paged_publications as $pub) {
       echo '<tr>
                 <td class="publication-info">
                     <a href="' . esc_url($pub['google_scholar_url']) . '" 
@@ -140,7 +183,96 @@ class Shortcode
       echo '</td></tr>';
     }
 
-    echo '</tbody></table></div>';
+    echo '</tbody></table>';
+
+    // Render pagination if needed
+    if ($total_pages > 1) {
+      $this->render_pagination($current_page, $total_pages);
+    }
+
+    echo '</div>';
+  }
+
+  protected function render_pagination($current_page, $total_pages)
+  {
+    $base_url = strtok($_SERVER['REQUEST_URI'], '?');
+    $query_params = $_GET;
+
+    echo '<nav class="scholar-pagination" role="navigation" aria-label="' . __('Publications pagination', 'scholar-profile') . '">
+            <div class="scholar-pagination-wrapper">';
+
+    // Previous button
+    if ($current_page > 1) {
+      $query_params['scholar_page'] = $current_page - 1;
+      $prev_url = $base_url . '?' . http_build_query($query_params);
+      echo '<a href="' . esc_url($prev_url) . '" class="scholar-pagination-btn scholar-pagination-prev" aria-label="' . __('Previous page', 'scholar-profile') . '">
+                <span aria-hidden="true">‹</span>
+                <span class="scholar-pagination-text">' . __('Previous', 'scholar-profile') . '</span>
+            </a>';
+    } else {
+      echo '<span class="scholar-pagination-btn scholar-pagination-prev disabled" aria-hidden="true">
+                <span aria-hidden="true">‹</span>
+                <span class="scholar-pagination-text">' . __('Previous', 'scholar-profile') . '</span>
+            </span>';
+    }
+
+    // Page numbers
+    echo '<div class="scholar-pagination-numbers">';
+
+    $start_page = max(1, $current_page - 2);
+    $end_page = min($total_pages, $current_page + 2);
+
+    // First page + ellipsis if needed
+    if ($start_page > 1) {
+      $query_params['scholar_page'] = 1;
+      $first_url = $base_url . '?' . http_build_query($query_params);
+      echo '<a href="' . esc_url($first_url) . '" class="scholar-pagination-number" aria-label="' . __('Go to page 1', 'scholar-profile') . '">1</a>';
+
+      if ($start_page > 2) {
+        echo '<span class="scholar-pagination-ellipsis" aria-hidden="true">…</span>';
+      }
+    }
+
+    // Page numbers around current page
+    for ($page = $start_page; $page <= $end_page; $page++) {
+      if ($page == $current_page) {
+        echo '<span class="scholar-pagination-number current" aria-current="page" aria-label="' . sprintf(__('Page %d, current page', 'scholar-profile'), $page) . '">' . $page . '</span>';
+      } else {
+        $query_params['scholar_page'] = $page;
+        $page_url = $base_url . '?' . http_build_query($query_params);
+        echo '<a href="' . esc_url($page_url) . '" class="scholar-pagination-number" aria-label="' . sprintf(__('Go to page %d', 'scholar-profile'), $page) . '">' . $page . '</a>';
+      }
+    }
+
+    // Last page + ellipsis if needed
+    if ($end_page < $total_pages) {
+      if ($end_page < $total_pages - 1) {
+        echo '<span class="scholar-pagination-ellipsis" aria-hidden="true">…</span>';
+      }
+
+      $query_params['scholar_page'] = $total_pages;
+      $last_url = $base_url . '?' . http_build_query($query_params);
+      echo '<a href="' . esc_url($last_url) . '" class="scholar-pagination-number" aria-label="' . sprintf(__('Go to page %d', 'scholar-profile'), $total_pages) . '">' . $total_pages . '</a>';
+    }
+
+    echo '</div>';
+
+    // Next button
+    if ($current_page < $total_pages) {
+      $query_params['scholar_page'] = $current_page + 1;
+      $next_url = $base_url . '?' . http_build_query($query_params);
+      echo '<a href="' . esc_url($next_url) . '" class="scholar-pagination-btn scholar-pagination-next" aria-label="' . __('Next page', 'scholar-profile') . '">
+                <span class="scholar-pagination-text">' . __('Next', 'scholar-profile') . '</span>
+                <span aria-hidden="true">›</span>
+            </a>';
+    } else {
+      echo '<span class="scholar-pagination-btn scholar-pagination-next disabled" aria-hidden="true">
+                <span class="scholar-pagination-text">' . __('Next', 'scholar-profile') . '</span>
+                <span aria-hidden="true">›</span>
+            </span>';
+    }
+
+    echo '</div></nav>';
   }
 
   protected function render_metrics($data)
