@@ -21,9 +21,9 @@
 }
 
 .scholar-sidebar-content {
-  flex: 0 0 30% !important;
-  /* 30% width for sidebar */
-  width: 30%;
+  flex: 0 0 27% !important;
+  /* 27% width for sidebar */
+  width: 27%;
   display: flex;
   flex-direction: column;
   gap: 16px;
