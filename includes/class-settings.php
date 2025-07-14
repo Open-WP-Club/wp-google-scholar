@@ -32,14 +32,11 @@ class Settings
 
   public function register_settings()
   {
-    // We're now handling settings manually, but keep this for WordPress compatibility
-    register_setting(
-      'scholar_profile_options',
-      $this->option_name,
-      array(
-        'sanitize_callback' => array($this, 'sanitize_settings')
-      )
-    );
+    // Since we're handling all form processing manually, we don't need WordPress 
+    // to register or process the settings. This prevents the double processing
+    // that was causing checkbox values to be overridden.
+
+    // WordPress admin pages work fine without register_setting when using custom handlers
   }
 
   public function handle_form_submission()
@@ -84,8 +81,11 @@ class Settings
       exit;
     }
 
+    // Get current settings to preserve any values not in the form
+    $current_settings = get_option($this->option_name, array());
+
     // Sanitize and save settings
-    $sanitized = $this->sanitize_settings($input);
+    $sanitized = $this->sanitize_settings($input, $current_settings);
     update_option($this->option_name, $sanitized);
 
     // Check if scheduler needs to be rescheduled
@@ -208,15 +208,24 @@ class Settings
     include WP_SCHOLAR_PLUGIN_DIR . 'views/settings-page.php';
   }
 
-  public function sanitize_settings($input)
+  public function sanitize_settings($input, $current_settings = array())
   {
     $sanitized = array();
-    $sanitized['profile_id'] = sanitize_text_field(trim($input['profile_id']));
+
+    // Profile ID
+    $sanitized['profile_id'] = sanitize_text_field(trim($input['profile_id'] ?? ''));
+
+    // Display Options - Handle checkboxes properly
+    // If checkbox is checked, it will be in $input. If unchecked, it won't be present.
     $sanitized['show_avatar'] = isset($input['show_avatar']) ? '1' : '0';
     $sanitized['show_info'] = isset($input['show_info']) ? '1' : '0';
     $sanitized['show_publications'] = isset($input['show_publications']) ? '1' : '0';
     $sanitized['show_coauthors'] = isset($input['show_coauthors']) ? '1' : '0';
-    $sanitized['update_frequency'] = sanitize_text_field($input['update_frequency']);
+
+    // Update Frequency
+    $sanitized['update_frequency'] = sanitize_text_field($input['update_frequency'] ?? 'weekly');
+
+    // Max Publications
     $sanitized['max_publications'] = isset($input['max_publications']) ? intval($input['max_publications']) : 200;
 
     // Validate update frequency

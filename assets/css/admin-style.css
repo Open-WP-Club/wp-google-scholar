@@ -1,6 +1,10 @@
 /* Admin Container */
 .scholar-admin-container {
+  max-width: 1200px;
   margin: 0;
+}
+
+  gap: 16px;
 }
 
 /* Card Styles */
@@ -32,7 +36,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px;
+  padding: 16px 20px;
   border-bottom: 1px solid #f0f0f1;
 }
 
@@ -50,16 +54,17 @@
 }
 
 .scholar-status-avatar {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   object-fit: cover;
 }
 
 .scholar-status-stats {
-  display: flex;
-  padding: 16px 24px;
-  gap: 32px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 16px 20px;
   border-bottom: 1px solid #f0f0f1;
 }
 
@@ -71,14 +76,14 @@
 }
 
 .scholar-stat-number {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
   color: #1d2327;
   line-height: 1.2;
 }
 
 .scholar-stat-label {
-  font-size: 12px;
+  font-size: 11px;
   color: #646970;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -86,7 +91,7 @@
 }
 
 .scholar-status-footer {
-  padding: 12px 24px;
+  padding: 10px 20px;
   background: #f6f7f7;
 }
 
@@ -98,13 +103,13 @@
 /* Empty State */
 .scholar-status-empty-content {
   text-align: center;
-  padding: 40px 24px;
+  padding: 30px 20px;
 }
 
 .scholar-status-empty-content .dashicons {
-  font-size: 48px;
+  font-size: 40px;
   color: #c3c4c7;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .scholar-status-empty-content h3 {
@@ -207,7 +212,7 @@
 
 /* Usage Card */
 .scholar-usage-card {
-  padding: 20px 24px;
+  padding: 16px 20px;
 }
 
 .scholar-usage-card h3 {
@@ -260,7 +265,37 @@
 }
 
 /* Responsive Design */
-@media screen and (max-width: 768px) {
+@media screen and (max-width: 1200px) {
+  .scholar-admin-layout {
+    gap: 20px;
+  }
+
+  .scholar-main-content {
+    flex: 0 0 75%;
+    /* Slightly less on smaller screens */
+  }
+
+  .scholar-sidebar-content {
+    flex: 0 0 25%;
+  }
+}
+
+@media screen and (max-width: 900px) {
+  .scholar-admin-layout {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .scholar-main-content {
+    flex: none;
+  }
+
+  .scholar-sidebar-content {
+    flex: none;
+    order: -1;
+    /* Move sidebar to top on mobile */
+  }
+
   .scholar-status-header {
     flex-direction: column;
     text-align: center;
@@ -268,8 +303,9 @@
   }
 
   .scholar-status-stats {
-    justify-content: center;
-    gap: 24px;
+    grid-template-columns: repeat(4, 1fr);
+    justify-items: center;
+    gap: 16px;
   }
 
   .form-table th {
@@ -299,6 +335,10 @@
     margin: 0 -20px;
   }
 
+  .scholar-admin-layout {
+    gap: 16px;
+  }
+
   .scholar-status-card,
   .scholar-settings-card,
   .scholar-usage-card {
@@ -307,7 +347,7 @@
     border-right: none;
   }
 
-  .scholar-status-card {
+  .scholar-status-active {
     border-left: 4px solid #00a32a;
   }
 
@@ -325,6 +365,8 @@
   }
 
   .scholar-status-stats {
+    grid-template-columns: 1fr 1fr;
     padding: 12px 20px;
+    gap: 12px;
   }
 }
