@@ -4,8 +4,8 @@
   margin: 0;
 }
 
-/* Two Column Layout - FORCE FLEX */
-.scholar-admin-layout {
+/* Main Layout: Side by Side */
+.scholar-main-layout {
   display: flex !important;
   gap: 24px;
   align-items: flex-start;
@@ -13,17 +13,17 @@
 }
 
 .scholar-main-content {
-  flex: 0 0 80% !important;
-  /* 80% width for main content */
+  flex: 0 0 70% !important;
+  /* 70% width for main content */
   min-width: 0;
   /* Prevent flex item from overflowing */
-  width: 80%;
+  width: 70%;
 }
 
 .scholar-sidebar-content {
-  flex: 0 0 20% !important;
-  /* 20% width for sidebar */
-  width: 20%;
+  flex: 0 0 30% !important;
+  /* 30% width for sidebar */
+  width: 30%;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -39,6 +39,20 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   margin-bottom: 20px;
   overflow: hidden;
+}
+
+/* Settings Card */
+.scholar-settings-card {
+  padding: 24px;
+}
+
+.scholar-settings-card h2 {
+  margin: 0 0 20px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1d2327;
+  border-bottom: 1px solid #f0f0f1;
+  padding-bottom: 12px;
 }
 
 /* Status Card */
@@ -147,10 +161,6 @@
 }
 
 /* Settings Card */
-.scholar-settings-card {
-  padding: 24px;
-}
-
 .scholar-settings-card h2 {
   margin: 0 0 20px 0;
   font-size: 20px;
@@ -288,22 +298,18 @@
 
 /* Responsive Design */
 @media screen and (max-width: 1200px) {
-  .scholar-admin-layout {
-    gap: 20px;
-  }
-
   .scholar-main-content {
-    flex: 0 0 75%;
+    flex: 0 0 65%;
     /* Slightly less on smaller screens */
   }
 
   .scholar-sidebar-content {
-    flex: 0 0 25%;
+    flex: 0 0 35%;
   }
 }
 
 @media screen and (max-width: 900px) {
-  .scholar-admin-layout {
+  .scholar-main-layout {
     flex-direction: column;
     gap: 20px;
   }
@@ -357,7 +363,7 @@
     margin: 0 -20px;
   }
 
-  .scholar-admin-layout {
+  .scholar-main-layout {
     gap: 16px;
   }
 
