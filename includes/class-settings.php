@@ -11,6 +11,7 @@ class Settings
   {
     add_action('admin_menu', array($this, 'add_menu_page'));
     add_action('admin_init', array($this, 'register_settings'));
+    add_action('admin_init', array($this, 'handle_form_submission'));
     add_action('admin_post_refresh_scholar_profile', array($this, 'handle_manual_refresh'));
     add_filter(
       'plugin_action_links_' . plugin_basename(WP_SCHOLAR_PLUGIN_DIR . 'wp-google-scholar.php'),
@@ -31,6 +32,7 @@ class Settings
 
   public function register_settings()
   {
+    // We're now handling settings manually, but keep this for WordPress compatibility
     register_setting(
       'scholar_profile_options',
       $this->option_name,
@@ -38,6 +40,64 @@ class Settings
         'sanitize_callback' => array($this, 'sanitize_settings')
       )
     );
+  }
+
+  public function handle_form_submission()
+  {
+    // Check if this is our settings form submission
+    if (!isset($_POST['scholar_profile_settings']) || !isset($_POST['scholar_settings_nonce'])) {
+      return;
+    }
+
+    // Verify user permissions
+    if (!current_user_can('manage_options')) {
+      wp_die(__('You do not have sufficient permissions to access this page.'));
+    }
+
+    // Verify nonce
+    if (!wp_verify_nonce($_POST['scholar_settings_nonce'], 'scholar_profile_settings')) {
+      wp_die(__('Security check failed.'));
+    }
+
+    // Sanitize and validate settings
+    $input = $_POST['scholar_profile_settings'];
+    $validation_errors = array();
+
+    // Validate profile ID format
+    if (!empty($input['profile_id'])) {
+      $profile_id = sanitize_text_field(trim($input['profile_id']));
+      if (strlen($profile_id) < 5 || strlen($profile_id) > 20) {
+        $validation_errors[] = __('Profile ID should be between 5-20 characters long.', 'scholar-profile');
+      }
+    }
+
+    // If there are validation errors, redirect back with errors
+    if (!empty($validation_errors)) {
+      $error_message = implode(' ', $validation_errors);
+      wp_redirect(add_query_arg(
+        array(
+          'page' => $this->page_slug,
+          'settings-error' => urlencode($error_message)
+        ),
+        admin_url('options-general.php')
+      ));
+      exit;
+    }
+
+    // Sanitize and save settings
+    $sanitized = $this->sanitize_settings($input);
+    update_option($this->option_name, $sanitized);
+
+    // Check if scheduler needs to be rescheduled
+    $scheduler = new Scheduler();
+    $scheduler->reschedule();
+
+    // Redirect back to settings page with success message
+    wp_redirect(add_query_arg(
+      array('page' => $this->page_slug, 'settings-updated' => 'true'),
+      admin_url('options-general.php')
+    ));
+    exit;
   }
 
   public function handle_manual_refresh()
@@ -61,11 +121,20 @@ class Settings
     }
 
     $scraper = new Scraper();
+
+    // Configure scraper limits based on settings
+    $scraper_config = array(
+      'max_publications' => isset($options['max_publications']) ? intval($options['max_publications']) : 200
+    );
+    $scraper->set_config($scraper_config);
+
     $data = $scraper->scrape($options['profile_id']);
 
     if ($data) {
       update_option('scholar_profile_data', $data);
       update_option('scholar_profile_last_update', time());
+
+      // Clean redirect with only refresh parameter
       wp_redirect(add_query_arg(
         array('page' => $this->page_slug, 'refresh' => 'success'),
         admin_url('options-general.php')
@@ -86,15 +155,22 @@ class Settings
     }
 
     $options = get_option($this->option_name);
+    $messages = array();
 
-    // Handle refresh status messages
+    // Handle settings validation errors
+    if (isset($_GET['settings-error'])) {
+      $messages[] = array(
+        'type' => 'error',
+        'message' => '⚠ ' . urldecode($_GET['settings-error'])
+      );
+    }
+
+    // Handle refresh status messages (check refresh first, before settings-updated)
     if (isset($_GET['refresh'])) {
       if ($_GET['refresh'] === 'success') {
-        add_settings_error(
-          'scholar_profile_messages',
-          'profile_updated',
-          __('✓ Profile data refreshed successfully!', 'scholar-profile'),
-          'updated'
+        $messages[] = array(
+          'type' => 'updated',
+          'message' => __('✓ Profile data refreshed successfully!', 'scholar-profile')
         );
       } elseif ($_GET['refresh'] === 'failed') {
         $message = __('Failed to refresh profile data. Please try again.', 'scholar-profile');
@@ -110,26 +186,17 @@ class Settings
           }
         }
 
-        add_settings_error(
-          'scholar_profile_messages',
-          'profile_update_failed',
-          '⚠ ' . $message,
-          'error'
+        $messages[] = array(
+          'type' => 'error',
+          'message' => '⚠ ' . $message
         );
       }
     }
-
-    // Handle settings saved
-    if (isset($_GET['settings-updated']) && $_GET['settings-updated'] === 'true') {
-      // Check if scheduler needs to be rescheduled
-      $scheduler = new Scheduler();
-      $scheduler->reschedule();
-
-      add_settings_error(
-        'scholar_profile_messages',
-        'settings_updated',
-        __('✓ Settings saved successfully!', 'scholar-profile'),
-        'updated'
+    // Only check for settings-updated if refresh is NOT set
+    elseif (isset($_GET['settings-updated']) && $_GET['settings-updated'] === 'true') {
+      $messages[] = array(
+        'type' => 'updated',
+        'message' => __('✓ Settings saved successfully!', 'scholar-profile')
       );
     }
 
@@ -145,23 +212,18 @@ class Settings
     $sanitized['show_publications'] = isset($input['show_publications']) ? '1' : '0';
     $sanitized['show_coauthors'] = isset($input['show_coauthors']) ? '1' : '0';
     $sanitized['update_frequency'] = sanitize_text_field($input['update_frequency']);
-
-    // Validate profile ID format (basic validation)
-    if (!empty($sanitized['profile_id'])) {
-      if (strlen($sanitized['profile_id']) < 5 || strlen($sanitized['profile_id']) > 20) {
-        add_settings_error(
-          'scholar_profile_messages',
-          'profile_id_invalid',
-          __('Profile ID should be between 5-20 characters long.', 'scholar-profile'),
-          'error'
-        );
-      }
-    }
+    $sanitized['max_publications'] = isset($input['max_publications']) ? intval($input['max_publications']) : 200;
 
     // Validate update frequency
     $valid_frequencies = array('daily', 'weekly', 'monthly', 'yearly');
     if (!in_array($sanitized['update_frequency'], $valid_frequencies)) {
       $sanitized['update_frequency'] = 'weekly';
+    }
+
+    // Validate max publications
+    $valid_max_pubs = array(50, 100, 200, 500);
+    if (!in_array($sanitized['max_publications'], $valid_max_pubs)) {
+      $sanitized['max_publications'] = 200;
     }
 
     return $sanitized;

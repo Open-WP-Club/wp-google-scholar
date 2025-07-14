@@ -4,6 +4,10 @@ namespace WPScholar;
 
 class Scraper
 {
+  private $max_publications = 200; // Reasonable limit to prevent excessive requests
+  private $page_size = 20; // Google Scholar shows 20 publications per page
+  private $request_delay = 1; // Delay between requests in seconds
+
   private function download_to_media_library($image_url, $profile_id, $title = '')
   {
     if (empty($image_url)) return '';
@@ -101,6 +105,26 @@ class Scraper
       return false;
     }
 
+    wp_scholar_log("Starting to scrape profile: $profile_id");
+
+    // First, get the main profile page to extract basic info
+    $main_data = $this->scrape_main_profile($profile_id);
+    if (!$main_data) {
+      wp_scholar_log("Failed to scrape main profile data");
+      return false;
+    }
+
+    // Then get all publications across multiple pages
+    $all_publications = $this->scrape_all_publications($profile_id);
+    $main_data['publications'] = $all_publications;
+
+    wp_scholar_log(sprintf("Successfully scraped %d publications", count($all_publications)));
+
+    return $main_data;
+  }
+
+  private function scrape_main_profile($profile_id)
+  {
     $url = "https://scholar.google.com/citations?user=" . urlencode($profile_id) . "&hl=en";
 
     $response = wp_remote_get($url, array(
@@ -111,20 +135,89 @@ class Scraper
     ));
 
     if (is_wp_error($response)) {
-      error_log('Google Scholar Profile Plugin: Error fetching profile - ' . $response->get_error_message());
+      wp_scholar_log('Error fetching main profile - ' . $response->get_error_message());
       return false;
     }
 
     $html = wp_remote_retrieve_body($response);
 
     if (empty($html)) {
+      wp_scholar_log('Empty response from main profile');
       return false;
     }
 
-    return $this->parse_html($html, $profile_id);
+    return $this->parse_main_profile_html($html, $profile_id);
   }
 
-  private function parse_html($html, $profile_id)
+  private function scrape_all_publications($profile_id)
+  {
+    $all_publications = array();
+    $current_start = 0;
+    $page_number = 1;
+
+    while (count($all_publications) < $this->max_publications) {
+      wp_scholar_log("Fetching publications page $page_number (start: $current_start)");
+
+      $publications = $this->scrape_publications_page($profile_id, $current_start);
+
+      if (empty($publications)) {
+        wp_scholar_log("No more publications found on page $page_number");
+        break;
+      }
+
+      $all_publications = array_merge($all_publications, $publications);
+
+      // If we got fewer publications than the page size, we've reached the end
+      if (count($publications) < $this->page_size) {
+        wp_scholar_log("Reached end of publications (got " . count($publications) . " on page $page_number)");
+        break;
+      }
+
+      $current_start += $this->page_size;
+      $page_number++;
+
+      // Add delay between requests to be respectful to Google Scholar
+      if ($page_number > 1) {
+        sleep($this->request_delay);
+      }
+
+      // Safety check to prevent infinite loops
+      if ($page_number > 20) {
+        wp_scholar_log("Reached maximum page limit (20 pages)");
+        break;
+      }
+    }
+
+    return $all_publications;
+  }
+
+  private function scrape_publications_page($profile_id, $start = 0)
+  {
+    $url = "https://scholar.google.com/citations?user=" . urlencode($profile_id) . "&hl=en&cstart=" . $start . "&pagesize=" . $this->page_size;
+
+    $response = wp_remote_get($url, array(
+      'timeout' => 30,
+      'headers' => array(
+        'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      )
+    ));
+
+    if (is_wp_error($response)) {
+      wp_scholar_log('Error fetching publications page - ' . $response->get_error_message());
+      return array();
+    }
+
+    $html = wp_remote_retrieve_body($response);
+
+    if (empty($html)) {
+      wp_scholar_log('Empty response from publications page');
+      return array();
+    }
+
+    return $this->extract_publications_from_html($html);
+  }
+
+  private function parse_main_profile_html($html, $profile_id)
   {
     $doc = new \DOMDocument();
     libxml_use_internal_errors(true);
@@ -137,7 +230,7 @@ class Scraper
       'name' => '',
       'affiliation' => '',
       'interests' => array(),
-      'publications' => array(),
+      'publications' => array(), // Will be populated separately
       'citations' => array(
         'total' => 0,
         'h_index' => 0,
@@ -151,10 +244,47 @@ class Scraper
 
     $this->extract_profile_info($xpath, $data, $profile_id);
     $this->extract_citations($xpath, $data);
-    $this->extract_publications($xpath, $data);
     $this->extract_coauthors($xpath, $data, $profile_id);
 
     return $data;
+  }
+
+  private function extract_publications_from_html($html)
+  {
+    $doc = new \DOMDocument();
+    libxml_use_internal_errors(true);
+    @$doc->loadHTML($html);
+    libxml_clear_errors();
+    $xpath = new \DOMXPath($doc);
+
+    $publications = array();
+    $publication_rows = $xpath->query("//tr[@class='gsc_a_tr']");
+
+    foreach ($publication_rows as $pub) {
+      $title_node = $xpath->query(".//a[@class='gsc_a_at']", $pub)->item(0);
+      $authors_node = $xpath->query(".//div[@class='gs_gray'][1]", $pub)->item(0);
+      $venue_node = $xpath->query(".//div[@class='gs_gray'][2]", $pub)->item(0);
+      $year_node = $xpath->query(".//span[@class='gsc_a_h gsc_a_hc gs_ibl']", $pub)->item(0);
+      $citations_node = $xpath->query(".//a[@class='gsc_a_ac gs_ibl']", $pub)->item(0);
+
+      if ($title_node) {
+        $publication = array(
+          'title' => trim($title_node->textContent),
+          'link' => 'https://scholar.google.com' . $title_node->getAttribute('href'),
+          'google_scholar_url' => 'https://scholar.google.com' . $title_node->getAttribute('href'),
+          'authors' => $authors_node ? trim($authors_node->textContent) : '',
+          'venue' => $venue_node ? trim($venue_node->textContent) : '',
+          'year' => $year_node ? trim($year_node->textContent) : '',
+          'citations' => $citations_node ? intval($citations_node->textContent) : 0,
+          'citations_url' => $citations_node ? 'https://scholar.google.com' . $citations_node->getAttribute('href') : '',
+          'citations_by_year_url' => $citations_node ? 'https://scholar.google.com' . $citations_node->getAttribute('href') . '&view_op=view_citation_years' : ''
+        );
+
+        $publications[] = $publication;
+      }
+    }
+
+    return $publications;
   }
 
   protected function extract_profile_info($xpath, &$data, $profile_id)
@@ -207,6 +337,8 @@ class Scraper
 
   protected function extract_publications($xpath, &$data)
   {
+    // This method is now deprecated in favor of extract_publications_from_html
+    // Keeping for backwards compatibility but not used in new flow
     $publications = $xpath->query("//tr[@class='gsc_a_tr']");
 
     foreach ($publications as $pub) {
@@ -261,6 +393,30 @@ class Scraper
 
         $data['coauthors'][] = $coauthor_data;
       }
+    }
+  }
+
+  // Public method to get configuration
+  public function get_config()
+  {
+    return array(
+      'max_publications' => $this->max_publications,
+      'page_size' => $this->page_size,
+      'request_delay' => $this->request_delay
+    );
+  }
+
+  // Public method to set configuration
+  public function set_config($config)
+  {
+    if (isset($config['max_publications'])) {
+      $this->max_publications = max(20, min(500, intval($config['max_publications'])));
+    }
+    if (isset($config['page_size'])) {
+      $this->page_size = max(10, min(100, intval($config['page_size'])));
+    }
+    if (isset($config['request_delay'])) {
+      $this->request_delay = max(0.5, min(5, floatval($config['request_delay'])));
     }
   }
 }

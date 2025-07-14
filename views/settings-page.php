@@ -23,7 +23,14 @@ $has_profile_data = !empty($profile_data) && !empty($profile_data['name']);
 
 <div class="wrap">
   <h1><?php _e('Google Scholar Profile', 'scholar-profile'); ?></h1>
-  <?php settings_errors('scholar_profile_messages'); ?>
+
+  <?php if (!empty($messages)): ?>
+    <?php foreach ($messages as $message): ?>
+      <div class="notice notice-<?php echo esc_attr($message['type']); ?> is-dismissible">
+        <p><?php echo esc_html($message['message']); ?></p>
+      </div>
+    <?php endforeach; ?>
+  <?php endif; ?>
 
   <div class="scholar-admin-container">
 
@@ -55,6 +62,10 @@ $has_profile_data = !empty($profile_data) && !empty($profile_data['name']);
             <span class="scholar-stat-number"><?php echo esc_html($profile_data['citations']['h_index']); ?></span>
             <span class="scholar-stat-label">h-index</span>
           </div>
+          <div class="scholar-stat">
+            <span class="scholar-stat-number"><?php echo count($profile_data['coauthors']); ?></span>
+            <span class="scholar-stat-label"><?php _e('Co-authors', 'scholar-profile'); ?></span>
+          </div>
         </div>
 
         <?php if ($last_update): ?>
@@ -80,8 +91,8 @@ $has_profile_data = !empty($profile_data) && !empty($profile_data['name']);
 
     <!-- Settings Form -->
     <div class="scholar-settings-card">
-      <form method="post" action="options.php">
-        <?php settings_fields('scholar_profile_options'); ?>
+      <form method="post" action="">
+        <?php wp_nonce_field('scholar_profile_settings', 'scholar_settings_nonce'); ?>
 
         <h2><?php _e('Profile Configuration', 'scholar-profile'); ?></h2>
 
@@ -161,6 +172,31 @@ $has_profile_data = !empty($profile_data) && !empty($profile_data['name']);
               </select>
               <p class="description">
                 <?php _e('How often to automatically refresh profile data from Google Scholar.', 'scholar-profile'); ?>
+              </p>
+            </td>
+          </tr>
+
+          <tr>
+            <th scope="row">
+              <label for="max_publications"><?php _e('Max Publications', 'scholar-profile'); ?></label>
+            </th>
+            <td>
+              <select id="max_publications" name="scholar_profile_settings[max_publications]">
+                <option value="50" <?php selected($options['max_publications'] ?? '200', '50'); ?>>
+                  <?php _e('50 publications', 'scholar-profile'); ?>
+                </option>
+                <option value="100" <?php selected($options['max_publications'] ?? '200', '100'); ?>>
+                  <?php _e('100 publications', 'scholar-profile'); ?>
+                </option>
+                <option value="200" <?php selected($options['max_publications'] ?? '200', '200'); ?>>
+                  <?php _e('200 publications (recommended)', 'scholar-profile'); ?>
+                </option>
+                <option value="500" <?php selected($options['max_publications'] ?? '200', '500'); ?>>
+                  <?php _e('500 publications', 'scholar-profile'); ?>
+                </option>
+              </select>
+              <p class="description">
+                <?php _e('Maximum number of publications to fetch from Google Scholar. Higher numbers take longer to process.', 'scholar-profile'); ?>
               </p>
             </td>
           </tr>
