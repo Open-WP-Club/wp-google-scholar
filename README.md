@@ -48,6 +48,36 @@ Add the shortcode to any post or page:
 [scholar_profile]
 ```
 
+### Sorting Options
+
+You can sort publications by specifying sorting parameters:
+
+```
+[scholar_profile sort_by="year" sort_order="desc"]
+[scholar_profile sort_by="citations" sort_order="desc"]
+[scholar_profile sort_by="title" sort_order="asc"]
+```
+
+**Available sort_by values:**
+
+- `year` - Sort by publication year
+- `citations` - Sort by citation count
+- `title` - Sort alphabetically by title
+
+**Available sort_order values:**
+
+- `desc` - Descending order (default)
+- `asc` - Ascending order
+
+### Interactive Sorting
+
+The publications table also supports interactive sorting:
+
+- Click any column header to sort by that field
+- Click again to reverse the sort order
+- Visual indicators (arrows) show the current sort direction
+- Fully accessible with keyboard navigation (Tab + Enter/Space)
+
 ### Manual Updates
 
 1. Go to Settings > Scholar Profile

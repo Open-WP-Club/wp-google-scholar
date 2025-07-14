@@ -11,11 +11,22 @@ class Shortcode
 
   public function render_profile($atts)
   {
+    // Parse shortcode attributes
+    $atts = shortcode_atts(array(
+      'sort_by' => '',
+      'sort_order' => 'desc'
+    ), $atts, 'scholar_profile');
+
     $options = get_option('scholar_profile_settings');
     $data = get_option('scholar_profile_data');
 
     if (!$data) {
       return '<p class="scholar-error">' . __('No profile data available. Please check the plugin settings.', 'scholar-profile') . '</p>';
+    }
+
+    // Apply sorting if specified
+    if (!empty($atts['sort_by']) && !empty($data['publications'])) {
+      $data['publications'] = $this->sort_publications($data['publications'], $atts['sort_by'], $atts['sort_order']);
     }
 
     ob_start();
@@ -83,15 +94,24 @@ class Shortcode
 
     echo '<div class="scholar-publications">
             <h2>' . __('Publications', 'scholar-profile') . '</h2>
-            <table class="scholar-publications-table">
+            <table class="scholar-publications-table" data-sortable="true">
                 <thead>
                     <tr>
-                        <th class="publication-title">' . __('Title', 'scholar-profile') . '</th>
-                        <th class="publication-year">' . __('Year', 'scholar-profile') . '</th>
-                        <th class="publication-citations">' . __('Cited by', 'scholar-profile') . '</th>
+                        <th class="publication-title sortable" data-sort="title" tabindex="0" role="button" aria-label="' . __('Sort by title', 'scholar-profile') . '">
+                            <span class="sort-label">' . __('Title', 'scholar-profile') . '</span>
+                            <span class="sort-arrow" aria-hidden="true"></span>
+                        </th>
+                        <th class="publication-year sortable" data-sort="year" tabindex="0" role="button" aria-label="' . __('Sort by year', 'scholar-profile') . '">
+                            <span class="sort-label">' . __('Year', 'scholar-profile') . '</span>
+                            <span class="sort-arrow" aria-hidden="true"></span>
+                        </th>
+                        <th class="publication-citations sortable" data-sort="citations" tabindex="0" role="button" aria-label="' . __('Sort by citations', 'scholar-profile') . '">
+                            <span class="sort-label">' . __('Cited by', 'scholar-profile') . '</span>
+                            <span class="sort-arrow" aria-hidden="true"></span>
+                        </th>
                     </tr>
                 </thead>
-                <tbody>';
+                <tbody class="publications-tbody">';
 
     foreach ($data['publications'] as $pub) {
       echo '<tr>
@@ -105,9 +125,9 @@ class Shortcode
                     <div class="scholar-publication-venue">'
         . esc_html($pub['venue']) . '</div>
                 </td>
-                <td class="publication-year">'
+                <td class="publication-year" data-year="' . esc_attr($pub['year']) . '">'
         . esc_html($pub['year']) . '</td>
-                <td class="publication-citations">';
+                <td class="publication-citations" data-citations="' . esc_attr($pub['citations']) . '">';
 
       if ($pub['citations'] > 0) {
         echo '<a href="' . esc_url($pub['citations_url']) . '" 
@@ -203,5 +223,54 @@ class Shortcode
     }
 
     echo '</div>';
+  }
+
+  /**
+   * Sort publications by specified field and order
+   */
+  protected function sort_publications($publications, $sort_by, $sort_order = 'desc')
+  {
+    if (empty($publications) || !is_array($publications)) {
+      return $publications;
+    }
+
+    $valid_sorts = array('title', 'year', 'citations');
+    if (!in_array($sort_by, $valid_sorts)) {
+      return $publications;
+    }
+
+    $sort_order = strtolower($sort_order) === 'asc' ? 'asc' : 'desc';
+
+    usort($publications, function ($a, $b) use ($sort_by, $sort_order) {
+      $value_a = $a[$sort_by] ?? '';
+      $value_b = $b[$sort_by] ?? '';
+
+      switch ($sort_by) {
+        case 'year':
+          $value_a = intval($value_a);
+          $value_b = intval($value_b);
+          break;
+        case 'citations':
+          $value_a = intval($value_a);
+          $value_b = intval($value_b);
+          break;
+        case 'title':
+          $value_a = strtolower(trim($value_a));
+          $value_b = strtolower(trim($value_b));
+          break;
+      }
+
+      if ($value_a == $value_b) {
+        return 0;
+      }
+
+      if ($sort_order === 'asc') {
+        return ($value_a < $value_b) ? -1 : 1;
+      } else {
+        return ($value_a > $value_b) ? -1 : 1;
+      }
+    });
+
+    return $publications;
   }
 }

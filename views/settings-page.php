@@ -147,6 +147,8 @@ $has_profile_data = !empty($profile_data) && !empty($profile_data['name']);
                   </select>
                   <p class="description">
                     <?php _e('Maximum number of publications to fetch from Google Scholar. Higher numbers take longer to process.', 'scholar-profile'); ?>
+                    <br><strong style="color: #d63638;"><?php _e('⚠️ Warning:', 'scholar-profile'); ?></strong>
+                    <?php _e('Fetching large numbers of publications (500+) may temporarily trigger IP rate limiting from Google Scholar. Use higher limits sparingly and consider longer update intervals.', 'scholar-profile'); ?>
                   </p>
                 </td>
               </tr>
@@ -166,6 +168,9 @@ $has_profile_data = !empty($profile_data) && !empty($profile_data['name']);
                 name="refresh_profile"
                 class="button button-secondary"
                 value="<?php esc_attr_e('Refresh Profile Data', 'scholar-profile'); ?>">
+              <p class="description" style="margin-top: 8px;">
+                <?php _e('Manually refresh data from Google Scholar. Large profiles may take several minutes to process.', 'scholar-profile'); ?>
+              </p>
             </form>
           </div>
         </div>
@@ -231,7 +236,7 @@ $has_profile_data = !empty($profile_data) && !empty($profile_data['name']);
 
         <!-- Usage Instructions -->
         <div class="scholar-usage-card">
-          <h3><?php _e('Usage', 'scholar-profile'); ?></h3>
+          <h3><?php _e('Basic Usage', 'scholar-profile'); ?></h3>
           <p><?php _e('Add to any post or page:', 'scholar-profile'); ?></p>
           <div class="scholar-shortcode">
             <code>[scholar_profile]</code>
@@ -239,6 +244,44 @@ $has_profile_data = !empty($profile_data) && !empty($profile_data['name']);
               <span class="dashicons dashicons-admin-page"></span>
             </button>
           </div>
+
+          <h4 style="margin: 20px 0 10px 0; font-size: 14px; font-weight: 600;"><?php _e('📊 Sorting Options', 'scholar-profile'); ?></h4>
+          <p style="margin-bottom: 12px; font-size: 13px; color: #646970;">
+            <?php _e('Sort publications by year, citations, or title:', 'scholar-profile'); ?>
+          </p>
+
+          <div style="background: #f6f7f7; padding: 12px; border-radius: 3px; border: 1px solid #dcdcde; margin-bottom: 8px;">
+            <code style="display: block; font-size: 12px; line-height: 1.4; margin: 2px 0;">
+              [scholar_profile sort_by="year" sort_order="desc"]<br>
+              [scholar_profile sort_by="citations" sort_order="desc"]<br>
+              [scholar_profile sort_by="title" sort_order="asc"]
+            </code>
+          </div>
+
+          <p style="margin: 8px 0; font-size: 12px; color: #646970;">
+            <?php _e('💡 <strong>Interactive Sorting:</strong> Readers can also click column headers to sort the table dynamically.', 'scholar-profile'); ?>
+          </p>
+        </div>
+
+        <!-- Rate Limiting Notice -->
+        <div class="scholar-usage-card" style="border-left: 4px solid #d63638;">
+          <h3 style="color: #d63638; display: flex; align-items: center; gap: 8px;">
+            <span class="dashicons dashicons-warning" style="font-size: 16px;"></span>
+            <?php _e('Important Notice', 'scholar-profile'); ?>
+          </h3>
+          <p style="font-size: 13px; line-height: 1.4; margin-bottom: 12px;">
+            <strong><?php _e('Google Scholar Rate Limiting:', 'scholar-profile'); ?></strong>
+            <?php _e('Google Scholar may temporarily block your IP address if you request too much data too frequently. This is especially likely when:', 'scholar-profile'); ?>
+          </p>
+          <ul style="margin: 8px 0; padding-left: 20px; font-size: 12px; color: #646970;">
+            <li><?php _e('Fetching 500+ publications', 'scholar-profile'); ?></li>
+            <li><?php _e('Refreshing data multiple times per day', 'scholar-profile'); ?></li>
+            <li><?php _e('Using daily update frequency with large profiles', 'scholar-profile'); ?></li>
+          </ul>
+          <p style="font-size: 12px; color: #646970; margin-top: 12px;">
+            <strong><?php _e('Recommendation:', 'scholar-profile'); ?></strong>
+            <?php _e('Use weekly or monthly updates for large profiles. If temporarily blocked, wait 24-48 hours before trying again.', 'scholar-profile'); ?>
+          </p>
         </div>
 
       </div>

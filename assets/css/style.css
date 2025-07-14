@@ -103,6 +103,51 @@
   font-weight: 500;
 }
 
+/* Sortable header styles */
+.scholar-publications-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  transition: background-color 0.2s ease;
+}
+
+.scholar-publications-table th.sortable:hover {
+  background-color: #f8f9fa;
+}
+
+.scholar-publications-table th.sortable:focus {
+  outline: 2px solid #1a73e8;
+  outline-offset: -2px;
+  background-color: #f8f9fa;
+}
+
+.scholar-publications-table th.sortable .sort-label {
+  display: inline-block;
+}
+
+.scholar-publications-table th.sortable .sort-arrow {
+  font-size: 0.75rem;
+  color: #666;
+  margin-left: 0.25rem;
+  min-width: 1rem;
+  display: inline-block;
+}
+
+.scholar-publications-table th.sorted-asc .sort-arrow,
+.scholar-publications-table th.sorted-desc .sort-arrow {
+  color: #1a73e8;
+  font-weight: bold;
+}
+
+/* Sorting animation */
+.scholar-publications-table.sorting-updated {
+  transition: opacity 0.3s ease;
+}
+
+.scholar-publications-table.sorting-updated tbody {
+  opacity: 0.8;
+}
+
 .scholar-publications-table td {
   padding: 1rem 0.75rem;
   border-bottom: 0.063rem solid #dadce0;
@@ -292,6 +337,18 @@
     align-items: center;
     text-align: center;
   }
+
+  /* Improve sortable headers on mobile */
+  .scholar-publications-table th.sortable {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.813rem;
+  }
+
+  .scholar-publications-table th.sortable .sort-arrow {
+    font-size: 0.688rem;
+    margin-left: 0.125rem;
+    min-width: 0.75rem;
+  }
 }
 
 @media (max-width: 30rem) {
@@ -321,5 +378,22 @@
   .scholar-publications-table th,
   .scholar-publications-table td {
     padding: 0.75rem 0.5rem;
+  }
+
+  /* Further optimize sortable headers for small screens */
+  .scholar-publications-table th.sortable {
+    padding: 0.625rem 0.375rem;
+    font-size: 0.75rem;
+  }
+
+  .scholar-publications-table th.sortable .sort-label {
+    display: block;
+    margin-bottom: 0.125rem;
+  }
+
+  .scholar-publications-table th.sortable .sort-arrow {
+    font-size: 0.625rem;
+    margin-left: 0;
+    margin-top: 0.125rem;
   }
 }

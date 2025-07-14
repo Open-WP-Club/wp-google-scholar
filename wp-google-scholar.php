@@ -67,6 +67,14 @@ function wp_scholar_enqueue_styles()
     array(),
     WP_SCHOLAR_VERSION
   );
+
+  wp_enqueue_script(
+    'scholar-profile-sorting',
+    WP_SCHOLAR_PLUGIN_URL . 'assets/js/scholar-sorting.js',
+    array(),
+    WP_SCHOLAR_VERSION,
+    true
+  );
 }
 
 // Enqueue admin styles
@@ -92,12 +100,16 @@ function wp_scholar_register_assets()
   // Create necessary directories if they don't exist
   $assets_dir = WP_SCHOLAR_PLUGIN_DIR . 'assets';
   $css_dir = $assets_dir . '/css';
+  $js_dir = $assets_dir . '/js';
 
   if (!file_exists($assets_dir)) {
     wp_mkdir_p($assets_dir);
   }
   if (!file_exists($css_dir)) {
     wp_mkdir_p($css_dir);
+  }
+  if (!file_exists($js_dir)) {
+    wp_mkdir_p($js_dir);
   }
 }
 
