@@ -4,10 +4,14 @@
  * Plugin Name: Google Scholar Profile Display
  * Plugin URI: https://openwpclub.com/
  * Description: Displays Google Scholar profile information using shortcode [scholar_profile]
- * Version: 1.2.0
- * Author: OpenWPClub
+ * Version: 1.3.0
+ * Author: OpenWPClub.com
+ * Author URI: https://openwpclub.com/
  * License: GPL v2 or later
  * Text Domain: scholar-profile
+ * Domain Path: /languages
+ * Requires at least: 5.0
+ * Requires PHP: 7.0
  */
 
 // Prevent direct access
@@ -16,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('WP_SCHOLAR_VERSION', '1.2.0');
+define('WP_SCHOLAR_VERSION', '1.3.0');
 define('WP_SCHOLAR_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('WP_SCHOLAR_PLUGIN_URL', plugin_dir_url(__FILE__));
 
@@ -117,8 +121,16 @@ register_activation_hook(__FILE__, function () {
       'show_info' => '1',
       'show_publications' => '1',
       'show_coauthors' => '1',
-      'update_frequency' => 'weekly'
+      'update_frequency' => 'weekly',
+      'max_publications' => '200'
     ));
+  } else {
+    // Add new setting to existing options if it doesn't exist
+    $options = get_option('scholar_profile_settings');
+    if (!isset($options['max_publications'])) {
+      $options['max_publications'] = '200';
+      update_option('scholar_profile_settings', $options);
+    }
   }
 });
 
@@ -133,9 +145,9 @@ function wp_scholar_log($message)
 {
   if (WP_DEBUG === true && WP_DEBUG_LOG === true) {
     if (is_array($message) || is_object($message)) {
-      error_log(print_r($message, true));
+      error_log('[Google Scholar Profile] ' . print_r($message, true));
     } else {
-      error_log($message);
+      error_log('[Google Scholar Profile] ' . $message);
     }
   }
 }

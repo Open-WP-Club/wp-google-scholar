@@ -59,22 +59,35 @@ class Scheduler
   {
     $options = get_option('scholar_profile_settings');
     if (empty($options['profile_id'])) {
+      wp_scholar_log('Scheduled update skipped: No profile ID configured');
       return;
     }
 
+    wp_scholar_log('Starting scheduled profile update for: ' . $options['profile_id']);
+
     $scraper = new Scraper();
+
+    // Configure scraper limits based on settings
+    $scraper_config = array(
+      'max_publications' => isset($options['max_publications']) ? intval($options['max_publications']) : 200
+    );
+    $scraper->set_config($scraper_config);
+
     $data = $scraper->scrape($options['profile_id']);
 
     if ($data) {
       update_option('scholar_profile_data', $data);
       update_option('scholar_profile_last_update', time());
 
-      // Log the update
-      error_log(sprintf(
-        'Google Scholar Profile updated for ID: %s at %s',
+      // Log the update with publication count
+      wp_scholar_log(sprintf(
+        'Google Scholar Profile updated for ID: %s at %s - Found %d publications',
         $options['profile_id'],
-        date('Y-m-d H:i:s')
+        date('Y-m-d H:i:s'),
+        count($data['publications'])
       ));
+    } else {
+      wp_scholar_log('Scheduled update failed for profile: ' . $options['profile_id']);
     }
   }
 
