@@ -313,7 +313,10 @@ class Scraper
 
     $interests_nodes = $xpath->query("//div[@id='gsc_prf_int']//a");
     foreach ($interests_nodes as $interest) {
-      $data['interests'][] = trim($interest->textContent);
+      $data['interests'][] = array(
+        'text' => trim($interest->textContent),
+        'url' => 'https://scholar.google.com' . $interest->getAttribute('href')
+      );
     }
   }
 

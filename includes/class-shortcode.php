@@ -100,7 +100,12 @@ class Shortcode
               <h3>' . __('Research Interests', 'scholar-profile') . '</h3>
               <div class="scholar-fields">';
       foreach ($data['interests'] as $interest) {
-        echo '<span class="scholar-field">' . esc_html($interest) . '</span>';
+        if (is_array($interest) && !empty($interest['url'])) {
+          echo '<a href="' . esc_url($interest['url']) . '" class="scholar-field" target="_blank" rel="noopener noreferrer">' . esc_html($interest['text']) . '</a>';
+        } else {
+          // Fallback for old data format
+          echo '<span class="scholar-field">' . esc_html(is_array($interest) ? $interest['text'] : $interest) . '</span>';
+        }
       }
       echo '</div></div>';
     }
