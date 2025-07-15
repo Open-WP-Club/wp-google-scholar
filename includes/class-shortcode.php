@@ -94,7 +94,7 @@ class Shortcode
             <h1 class="scholar-name">' . esc_html($data['name']) . '</h1>
             <div class="scholar-affiliation">' . esc_html($data['affiliation']) . '</div>';
 
-    // Research interests
+    // Research interests with links
     if (!empty($data['interests'])) {
       echo '<div class="scholar-interests">
               <h3>' . __('Research Interests', 'scholar-profile') . '</h3>

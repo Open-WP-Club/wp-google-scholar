@@ -12,21 +12,29 @@ class Scraper
   {
     if (empty($image_url)) return '';
 
-    // Generate a unique filename
-    $filename = sanitize_file_name(basename($image_url));
-    if (!preg_match('/\.(jpg|jpeg|png|gif)$/i', $filename)) {
-      $filename .= '.jpg';
-    }
+    // Generate a consistent filename based on URL hash for better caching
+    $url_hash = md5($image_url);
+    $filename = 'scholar-' . $profile_id . '-' . $url_hash;
 
-    // Check if image already exists in media library by searching for the filename
+    // Determine file extension
+    $extension = '.jpg'; // Default
+    if (preg_match('/\.(jpg|jpeg|png|gif|webp)$/i', $image_url, $matches)) {
+      $extension = strtolower($matches[0]);
+    }
+    $filename .= $extension;
+
+    // Enhanced cache check - look for existing images by URL hash and profile ID
     $existing_attachment = get_posts(array(
       'post_type' => 'attachment',
-      'meta_key' => '_scholar_profile_id',
-      'meta_value' => $profile_id,
       'meta_query' => array(
+        'relation' => 'AND',
         array(
-          'key' => '_scholar_image_url',
-          'value' => $image_url
+          'key' => '_scholar_profile_id',
+          'value' => $profile_id
+        ),
+        array(
+          'key' => '_scholar_image_hash',
+          'value' => $url_hash
         )
       ),
       'posts_per_page' => 1
@@ -34,16 +42,39 @@ class Scraper
 
     if (!empty($existing_attachment)) {
       $attachment_url = wp_get_attachment_url($existing_attachment[0]->ID);
-      if ($attachment_url) {
+      if ($attachment_url && $this->verify_image_exists($attachment_url)) {
+        wp_scholar_log("Using cached image for hash: $url_hash");
         return $attachment_url;
+      } else {
+        // Clean up broken attachment
+        wp_delete_attachment($existing_attachment[0]->ID, true);
+        wp_scholar_log("Removed broken cached image for hash: $url_hash");
       }
     }
+
+    // Check if we've downloaded this exact URL recently (within last 24 hours)
+    $recent_download = get_transient('scholar_image_download_' . $url_hash);
+    if ($recent_download) {
+      wp_scholar_log("Skipping recent download for hash: $url_hash");
+      return $recent_download;
+    }
+
+    wp_scholar_log("Downloading new image for hash: $url_hash from: $image_url");
 
     // Prepare image data
     if (strpos($image_url, 'data:image') === 0) {
       // Handle base64 encoded images
       $data = explode(',', $image_url);
+      if (count($data) < 2) {
+        wp_scholar_log("Invalid base64 image data");
+        return '';
+      }
+
       $image_data = base64_decode($data[1]);
+      if ($image_data === false) {
+        wp_scholar_log("Failed to decode base64 image");
+        return '';
+      }
 
       // Create temporary file
       $tmp = wp_tempnam();
@@ -54,9 +85,10 @@ class Scraper
         'tmp_name' => $tmp
       );
     } else {
-      // Download external image
-      $temp_file = download_url($image_url);
+      // Download external image with better error handling
+      $temp_file = download_url($image_url, 300, false);
       if (is_wp_error($temp_file)) {
+        wp_scholar_log('Failed to download image: ' . $temp_file->get_error_message());
         return '';
       }
 
@@ -70,13 +102,15 @@ class Scraper
     $file_type = wp_check_filetype($filename);
     if (!$file_type['type']) {
       unlink($file_array['tmp_name']);
+      wp_scholar_log("Invalid file type for: $filename");
       return '';
     }
 
-    // Prepare attachment data
+    // Prepare attachment data with better title
+    $clean_title = !empty($title) ? $title : sprintf('Scholar Image - %s', $profile_id);
     $attachment = array(
       'post_mime_type' => $file_type['type'],
-      'post_title' => !empty($title) ? $title : pathinfo($filename, PATHINFO_FILENAME),
+      'post_title' => sanitize_text_field($clean_title),
       'post_content' => '',
       'post_status' => 'inherit'
     );
@@ -85,18 +119,83 @@ class Scraper
     $attach_id = media_handle_sideload($file_array, 0, '', $attachment);
 
     if (is_wp_error($attach_id)) {
-      unlink($file_array['tmp_name']);
+      if (isset($file_array['tmp_name']) && file_exists($file_array['tmp_name'])) {
+        unlink($file_array['tmp_name']);
+      }
+      wp_scholar_log('Failed to create attachment: ' . $attach_id->get_error_message());
       return '';
     }
 
-    // Add custom meta to track the profile ID and original URL
+    // Add enhanced meta for better caching and tracking
     update_post_meta($attach_id, '_scholar_profile_id', $profile_id);
     update_post_meta($attach_id, '_scholar_image_url', $image_url);
+    update_post_meta($attach_id, '_scholar_image_hash', $url_hash);
+    update_post_meta($attach_id, '_scholar_download_time', time());
 
     // Get the attachment URL
     $attachment_url = wp_get_attachment_url($attach_id);
 
-    return $attachment_url ?: '';
+    if ($attachment_url) {
+      // Cache the result for 24 hours
+      set_transient('scholar_image_download_' . $url_hash, $attachment_url, 24 * HOUR_IN_SECONDS);
+      wp_scholar_log("Successfully cached image with hash: $url_hash");
+      return $attachment_url;
+    }
+
+    return '';
+  }
+
+  /**
+   * Verify that a cached image still exists and is accessible
+   */
+  private function verify_image_exists($url)
+  {
+    if (empty($url)) return false;
+
+    // For local URLs, check if file exists
+    if (strpos($url, home_url()) === 0) {
+      $upload_dir = wp_upload_dir();
+      $file_path = str_replace($upload_dir['baseurl'], $upload_dir['basedir'], $url);
+      return file_exists($file_path);
+    }
+
+    // For external URLs, we'll assume they exist to avoid extra HTTP requests
+    return true;
+  }
+
+  /**
+   * Clean up old cached images for a profile (optional method for maintenance)
+   */
+  public function cleanup_old_images($profile_id, $days_old = 30)
+  {
+    $old_attachments = get_posts(array(
+      'post_type' => 'attachment',
+      'meta_query' => array(
+        array(
+          'key' => '_scholar_profile_id',
+          'value' => $profile_id
+        ),
+        array(
+          'key' => '_scholar_download_time',
+          'value' => time() - ($days_old * DAY_IN_SECONDS),
+          'compare' => '<'
+        )
+      ),
+      'posts_per_page' => -1
+    ));
+
+    $deleted_count = 0;
+    foreach ($old_attachments as $attachment) {
+      if (wp_delete_attachment($attachment->ID, true)) {
+        $deleted_count++;
+      }
+    }
+
+    if ($deleted_count > 0) {
+      wp_scholar_log("Cleaned up $deleted_count old images for profile: $profile_id");
+    }
+
+    return $deleted_count;
   }
 
   public function scrape($profile_id)

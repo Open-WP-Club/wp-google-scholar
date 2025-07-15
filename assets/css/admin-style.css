@@ -31,7 +31,9 @@
 /* Card Styles */
 .scholar-status-card,
 .scholar-settings-card,
-.scholar-usage-card {
+.scholar-usage-card,
+.scholar-system-card,
+.scholar-notice-card {
   background: #fff;
   border: 1px solid #ccd0d4;
   border-radius: 4px;
@@ -83,9 +85,35 @@
 }
 
 .scholar-status-info p {
-  margin: 0;
+  margin: 0 0 8px 0;
   color: #646970;
   font-size: 14px;
+}
+
+/* Research Interests Preview */
+.scholar-interests-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.scholar-interest-tag {
+  background: #e7f3ff;
+  color: #2271b1;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.scholar-interest-more {
+  background: #f0f0f1;
+  color: #646970;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-style: italic;
 }
 
 .scholar-status-avatar {
@@ -126,13 +154,26 @@
 }
 
 .scholar-status-footer {
-  padding: 10px 20px;
+  padding: 12px 20px;
   background: #f6f7f7;
 }
 
-.scholar-last-update {
-  font-size: 13px;
+.scholar-update-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scholar-last-update,
+.scholar-next-update {
+  font-size: 12px;
   color: #646970;
+  line-height: 1.3;
+}
+
+.scholar-last-update small {
+  color: #999;
+  font-size: 11px;
 }
 
 /* Empty State */
@@ -154,19 +195,21 @@
 }
 
 .scholar-status-empty-content p {
-  margin: 0;
+  margin: 0 0 12px 0;
   color: #646970;
   font-size: 14px;
 }
 
-/* Settings Card */
-.scholar-settings-card h2 {
-  margin: 0 0 20px 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: #1d2327;
-  border-bottom: 1px solid #f0f0f1;
-  padding-bottom: 12px;
+.scholar-empty-actions {
+  background: #f6f7f7;
+  padding: 12px;
+  border-radius: 3px;
+  margin-top: 12px;
+}
+
+.scholar-empty-actions p {
+  margin: 4px 0;
+  font-size: 13px;
 }
 
 /* Form Improvements */
@@ -235,28 +278,131 @@
   border-top: 1px solid #f0f0f1;
 }
 
-.scholar-refresh-section form {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-/* Usage Card */
-.scholar-usage-card {
-  padding: 16px 20px;
-}
-
-.scholar-usage-card h3 {
+.scholar-refresh-section h3 {
   margin: 0 0 12px 0;
   font-size: 16px;
   font-weight: 600;
   color: #1d2327;
 }
 
-.scholar-usage-card p {
-  margin: 0 0 12px 0;
-  color: #646970;
+.scholar-refresh-section form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Loading States */
+.scholar-refresh-loading {
+  position: relative;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.scholar-refresh-loading::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #2271b1;
+  border-radius: 50%;
+  animation: scholar-spin 1s linear infinite;
+  z-index: 10;
+}
+
+@keyframes scholar-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.scholar-refresh-controls {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.scholar-loading-message {
+  background: #e7f3ff;
+  border: 1px solid #2271b1;
+  border-radius: 4px;
+  padding: 12px 16px;
+  margin: 12px 0;
   font-size: 14px;
+  color: #2271b1;
+  display: none;
+}
+
+.scholar-loading-message.show {
+  display: block;
+}
+
+.scholar-progress-steps {
+  margin: 8px 0;
+  font-size: 13px;
+  color: #666;
+}
+
+.scholar-progress-step {
+  padding: 2px 0;
+  transition: all 0.3s ease;
+}
+
+.scholar-progress-step.current {
+  color: #2271b1;
+  font-weight: 600;
+}
+
+.scholar-progress-step.completed {
+  color: #00a32a;
+}
+
+.scholar-cooldown-notice {
+  color: #d63638;
+  font-size: 13px;
+  font-style: italic;
+}
+
+/* Usage Card */
+.scholar-usage-card,
+.scholar-system-card,
+.scholar-notice-card {
+  padding: 16px 20px;
+}
+
+.scholar-usage-card h3,
+.scholar-system-card h3,
+.scholar-notice-card h3 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1d2327;
+}
+
+.scholar-usage-section {
+  margin-bottom: 16px;
+}
+
+.scholar-usage-section h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1d2327;
+}
+
+.scholar-usage-section p {
+  margin: 0 0 8px 0;
+  color: #646970;
+  font-size: 13px;
 }
 
 .scholar-shortcode {
@@ -267,6 +413,7 @@
   padding: 12px 16px;
   border-radius: 3px;
   border: 1px solid #dcdcde;
+  margin-bottom: 8px;
 }
 
 .scholar-shortcode code {
@@ -275,6 +422,34 @@
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
   font-size: 14px;
   color: #1d2327;
+}
+
+.scholar-code-examples {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.scholar-code-examples code {
+  background: #f6f7f7;
+  padding: 8px 12px;
+  border-radius: 3px;
+  border: 1px solid #dcdcde;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 12px;
+  color: #1d2327;
+  display: block;
+}
+
+.scholar-usage-tip {
+  background: #f0f6fc;
+  padding: 8px 12px;
+  border-radius: 3px;
+  border-left: 3px solid #2271b1;
+  font-size: 12px;
+  color: #2271b1;
+  margin-top: 8px;
 }
 
 .scholar-copy-btn {
@@ -293,6 +468,69 @@
 
 .scholar-copy-btn .dashicons {
   font-size: 16px;
+}
+
+/* System Card */
+.scholar-system-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.scholar-system-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid #f0f0f1;
+}
+
+.scholar-system-item:last-child {
+  border-bottom: none;
+}
+
+.scholar-system-label {
+  font-size: 13px;
+  color: #646970;
+  font-weight: 500;
+}
+
+.scholar-system-value {
+  font-size: 13px;
+  color: #1d2327;
+  font-weight: 600;
+}
+
+.scholar-status-good {
+  color: #00a32a;
+}
+
+.scholar-status-warning {
+  color: #dba617;
+}
+
+/* Notice Card */
+.scholar-notice-card {
+  border-left: 4px solid #d63638;
+}
+
+.scholar-notice-list {
+  margin: 8px 0 12px 20px;
+  font-size: 13px;
+  color: #646970;
+}
+
+.scholar-notice-list li {
+  margin-bottom: 4px;
+}
+
+.scholar-notice-recommendation {
+  background: #f0f6fc;
+  padding: 8px 12px;
+  border-radius: 3px;
+  font-size: 13px;
+  color: #2271b1;
+  margin-top: 12px;
 }
 
 /* Responsive Design */
@@ -355,6 +593,15 @@
     align-items: flex-start;
     gap: 8px;
   }
+
+  .scholar-refresh-controls {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .scholar-progress-steps {
+    width: 100%;
+  }
 }
 
 @media screen and (max-width: 480px) {
@@ -368,7 +615,9 @@
 
   .scholar-status-card,
   .scholar-settings-card,
-  .scholar-usage-card {
+  .scholar-usage-card,
+  .scholar-system-card,
+  .scholar-notice-card {
     border-radius: 0;
     border-left: none;
     border-right: none;
@@ -382,12 +631,18 @@
     border-left: 4px solid #dba617;
   }
 
+  .scholar-notice-card {
+    border-left: 4px solid #d63638;
+  }
+
   .scholar-settings-card {
     padding: 16px;
   }
 
   .scholar-status-header,
-  .scholar-usage-card {
+  .scholar-usage-card,
+  .scholar-system-card,
+  .scholar-notice-card {
     padding: 16px 20px;
   }
 
@@ -395,5 +650,20 @@
     grid-template-columns: 1fr 1fr;
     padding: 12px 20px;
     gap: 12px;
+  }
+
+  .scholar-system-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .scholar-loading-message {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .scholar-progress-steps {
+    font-size: 12px;
   }
 }
