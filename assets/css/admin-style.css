@@ -6,26 +6,23 @@
 /* Main Layout: Side by Side */
 .scholar-main-layout {
   display: flex !important;
-  gap: 24px;
+  gap: 1.5rem;
   align-items: flex-start;
   width: 100%;
 }
 
 .scholar-main-content {
   flex: 0 0 70% !important;
-  /* 70% width for main content */
   min-width: 0;
-  /* Prevent flex item from overflowing */
   width: 70%;
 }
 
 .scholar-sidebar-content {
   flex: 0 0 27% !important;
-  /* 27% width for sidebar */
   width: 27%;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 1rem;
 }
 
 /* Card Styles */
@@ -35,25 +32,25 @@
 .scholar-system-card,
 .scholar-notice-card {
   background: #fff;
-  border: 1px solid #ccd0d4;
-  border-radius: 4px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  margin-bottom: 20px;
+  border: 0.0625rem solid #ccd0d4;
+  border-radius: 0.25rem;
+  box-shadow: 0 0.0625rem 0.1875rem rgba(0, 0, 0, 0.04);
+  margin-bottom: 1.25rem;
   overflow: hidden;
 }
 
 /* Settings Card */
 .scholar-settings-card {
-  padding: 24px;
+  padding: 1.5rem;
 }
 
 .scholar-settings-card h2 {
-  margin: 0 0 20px 0;
-  font-size: 20px;
+  margin: 0 0 1.25rem 0;
+  font-size: 1.25rem;
   font-weight: 600;
   color: #1d2327;
-  border-bottom: 1px solid #f0f0f1;
-  padding-bottom: 12px;
+  border-bottom: 0.0625rem solid #f0f0f1;
+  padding-bottom: 0.75rem;
 }
 
 /* Status Card */
@@ -62,73 +59,78 @@
 }
 
 .scholar-status-active {
-  border-left: 4px solid #00a32a;
+  border-left: 0.25rem solid #00a32a;
 }
 
 .scholar-status-empty {
-  border-left: 4px solid #dba617;
+  border-left: 0.25rem solid #dba617;
 }
 
 .scholar-status-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
-  border-bottom: 1px solid #f0f0f1;
+  padding: 1rem 1.25rem;
+  border-bottom: 0.0625rem solid #f0f0f1;
 }
 
 .scholar-status-info h3 {
-  margin: 0 0 4px 0;
-  font-size: 18px;
+  margin: 0 0 0.25rem 0;
+  font-size: 1.125rem;
   font-weight: 600;
   color: #1d2327;
+  line-height: 1.3;
 }
 
 .scholar-status-info p {
-  margin: 0 0 8px 0;
+  margin: 0 0 0.5rem 0;
   color: #646970;
-  font-size: 14px;
+  font-size: 0.875rem;
+  line-height: 1.4;
 }
 
 /* Research Interests Preview */
 .scholar-interests-preview {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 8px;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
 }
 
 .scholar-interest-tag {
   background: #e7f3ff;
   color: #2271b1;
-  font-size: 11px;
-  padding: 2px 6px;
-  border-radius: 10px;
+  font-size: 0.6875rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.625rem;
   white-space: nowrap;
+  line-height: 1.2;
 }
 
 .scholar-interest-more {
   background: #f0f0f1;
   color: #646970;
-  font-size: 11px;
-  padding: 2px 6px;
-  border-radius: 10px;
+  font-size: 0.6875rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.625rem;
   font-style: italic;
+  line-height: 1.2;
 }
 
 .scholar-status-avatar {
-  width: 40px;
-  height: 40px;
+  width: 2.5rem;
+  height: 2.5rem;
   border-radius: 50%;
   object-fit: cover;
+  flex-shrink: 0;
 }
 
 .scholar-status-stats {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  padding: 16px 20px;
-  border-bottom: 1px solid #f0f0f1;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 0.0625rem solid #f0f0f1;
 }
 
 .scholar-stat {
@@ -139,156 +141,208 @@
 }
 
 .scholar-stat-number {
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 600;
   color: #1d2327;
   line-height: 1.2;
 }
 
 .scholar-stat-label {
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: #646970;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-top: 2px;
+  letter-spacing: 0.03125rem;
+  margin-top: 0.125rem;
+  line-height: 1.2;
 }
 
 .scholar-status-footer {
-  padding: 12px 20px;
+  padding: 0.75rem 1.25rem;
   background: #f6f7f7;
 }
 
 .scholar-update-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0.25rem;
 }
 
 .scholar-last-update,
 .scholar-next-update {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: #646970;
   line-height: 1.3;
 }
 
 .scholar-last-update small {
   color: #999;
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 
 /* Empty State */
 .scholar-status-empty-content {
   text-align: center;
-  padding: 30px 20px;
+  padding: 1.875rem 1.25rem;
 }
 
 .scholar-status-empty-content .dashicons {
-  font-size: 40px;
+  font-size: 2.5rem;
   color: #c3c4c7;
-  margin-bottom: 12px;
+  margin-bottom: 0.75rem;
 }
 
 .scholar-status-empty-content h3 {
-  margin: 0 0 8px 0;
-  font-size: 18px;
+  margin: 0 0 0.5rem 0;
+  font-size: 1.125rem;
   color: #1d2327;
+  line-height: 1.3;
 }
 
 .scholar-status-empty-content p {
-  margin: 0 0 12px 0;
+  margin: 0 0 0.75rem 0;
   color: #646970;
-  font-size: 14px;
+  font-size: 0.875rem;
+  line-height: 1.4;
 }
 
 .scholar-empty-actions {
   background: #f6f7f7;
-  padding: 12px;
-  border-radius: 3px;
-  margin-top: 12px;
+  padding: 0.75rem;
+  border-radius: 0.1875rem;
+  margin-top: 0.75rem;
 }
 
 .scholar-empty-actions p {
-  margin: 4px 0;
-  font-size: 13px;
+  margin: 0.25rem 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
 }
 
 /* Form Improvements */
+.form-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+}
+
 .form-table th {
-  padding: 16px 20px 16px 0;
-  width: 200px;
+  padding: 1rem 1.25rem 1rem 0;
+  width: 12.5rem;
   font-weight: 600;
+  vertical-align: top;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  text-align: left;
 }
 
 .form-table td {
-  padding: 16px 0;
+  padding: 1rem 0;
+  vertical-align: top;
+  width: auto;
+}
+
+.form-table fieldset {
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.form-table legend {
+  display: none;
 }
 
 .form-table input[type="text"],
 .form-table select {
-  border-radius: 3px;
-  border: 1px solid #8c8f94;
+  border-radius: 0.1875rem;
+  border: 0.0625rem solid #8c8f94;
   transition: border-color 0.15s ease-in-out;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  padding: 0.5rem 0.75rem;
+  width: 100%;
+  max-width: 25rem;
+  box-sizing: border-box;
 }
 
 .form-table input[type="text"]:focus,
 .form-table select:focus {
   border-color: #2271b1;
-  box-shadow: 0 0 0 1px #2271b1;
+  box-shadow: 0 0 0 0.0625rem #2271b1;
   outline: none;
 }
 
 .form-table .description {
-  margin-top: 8px;
+  margin-top: 0.5rem;
   color: #646970;
-  font-size: 13px;
-  line-height: 1.4;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  max-width: 90%;
+  word-wrap: break-word;
+}
+
+.form-table .description em {
+  font-style: italic;
+  color: #2271b1;
+}
+
+.form-table .description strong {
+  font-weight: 600;
 }
 
 /* Custom Checkbox Styling */
 .scholar-checkbox-label {
   display: flex;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 0.5rem;
   cursor: pointer;
-  padding: 4px 0;
+  padding: 0.25rem 0;
+  line-height: 1.5;
+  min-height: 1.5rem;
 }
 
 .scholar-checkbox-label input[type="checkbox"] {
-  margin: 0 8px 0 0;
+  margin: 0 0.5rem 0 0 !important;
+  flex-shrink: 0;
+  vertical-align: baseline;
 }
 
 .scholar-checkbox-text {
-  font-size: 14px;
+  font-size: 0.875rem;
   color: #1d2327;
+  line-height: 1.5;
+  white-space: nowrap;
+  flex: 1;
 }
 
 /* Form Actions */
 .scholar-form-actions {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid #f0f0f1;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 0.0625rem solid #f0f0f1;
 }
 
 .scholar-refresh-section {
-  margin-top: 16px;
-  padding: 16px 0;
-  border-top: 1px solid #f0f0f1;
+  margin-top: 1rem;
+  padding: 1rem 0;
+  border-top: 0.0625rem solid #f0f0f1;
 }
 
 .scholar-refresh-section h3 {
-  margin: 0 0 12px 0;
-  font-size: 16px;
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
   font-weight: 600;
   color: #1d2327;
+  line-height: 1.3;
 }
 
 .scholar-refresh-section form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
 /* Loading States */
@@ -303,11 +357,11 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 24px;
-  height: 24px;
-  margin: -12px 0 0 -12px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #2271b1;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: -0.75rem 0 0 -0.75rem;
+  border: 0.1875rem solid #f3f3f3;
+  border-top: 0.1875rem solid #2271b1;
   border-radius: 50%;
   animation: scholar-spin 1s linear infinite;
   z-index: 10;
@@ -327,19 +381,20 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 0.75rem;
   flex-wrap: wrap;
 }
 
 .scholar-loading-message {
   background: #e7f3ff;
-  border: 1px solid #2271b1;
-  border-radius: 4px;
-  padding: 12px 16px;
-  margin: 12px 0;
-  font-size: 14px;
+  border: 0.0625rem solid #2271b1;
+  border-radius: 0.25rem;
+  padding: 0.75rem 1rem;
+  margin: 0.75rem 0;
+  font-size: 0.875rem;
   color: #2271b1;
   display: none;
+  line-height: 1.4;
 }
 
 .scholar-loading-message.show {
@@ -347,13 +402,14 @@
 }
 
 .scholar-progress-steps {
-  margin: 8px 0;
-  font-size: 13px;
+  margin: 0.5rem 0;
+  font-size: 0.8125rem;
   color: #666;
+  line-height: 1.3;
 }
 
 .scholar-progress-step {
-  padding: 2px 0;
+  padding: 0.125rem 0;
   transition: all 0.3s ease;
 }
 
@@ -368,98 +424,106 @@
 
 .scholar-cooldown-notice {
   color: #d63638;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-style: italic;
+  line-height: 1.3;
 }
 
 /* Usage Card */
 .scholar-usage-card,
 .scholar-system-card,
 .scholar-notice-card {
-  padding: 16px 20px;
+  padding: 1rem 1.25rem;
 }
 
 .scholar-usage-card h3,
 .scholar-system-card h3,
 .scholar-notice-card h3 {
-  margin: 0 0 12px 0;
-  font-size: 16px;
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
   font-weight: 600;
   color: #1d2327;
+  line-height: 1.3;
 }
 
 .scholar-usage-section {
-  margin-bottom: 16px;
+  margin-bottom: 1rem;
 }
 
 .scholar-usage-section h4 {
-  margin: 0 0 8px 0;
-  font-size: 14px;
+  margin: 0 0 0.5rem 0;
+  font-size: 0.875rem;
   font-weight: 600;
   color: #1d2327;
+  line-height: 1.3;
 }
 
 .scholar-usage-section p {
-  margin: 0 0 8px 0;
+  margin: 0 0 0.5rem 0;
   color: #646970;
-  font-size: 13px;
+  font-size: 0.8125rem;
+  line-height: 1.4;
 }
 
 .scholar-shortcode {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0.5rem;
   background: #f6f7f7;
-  padding: 12px 16px;
-  border-radius: 3px;
-  border: 1px solid #dcdcde;
-  margin-bottom: 8px;
+  padding: 0.75rem 1rem;
+  border-radius: 0.1875rem;
+  border: 0.0625rem solid #dcdcde;
+  margin-bottom: 0.5rem;
 }
 
 .scholar-shortcode code {
   background: transparent;
   padding: 0;
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-  font-size: 14px;
+  font-size: 0.875rem;
   color: #1d2327;
+  line-height: 1.2;
 }
 
 .scholar-code-examples {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 8px;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
 }
 
 .scholar-code-examples code {
   background: #f6f7f7;
-  padding: 8px 12px;
-  border-radius: 3px;
-  border: 1px solid #dcdcde;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.1875rem;
+  border: 0.0625rem solid #dcdcde;
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: #1d2327;
   display: block;
+  line-height: 1.3;
 }
 
 .scholar-usage-tip {
   background: #f0f6fc;
-  padding: 8px 12px;
-  border-radius: 3px;
-  border-left: 3px solid #2271b1;
-  font-size: 12px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.1875rem;
+  border-left: 0.1875rem solid #2271b1;
+  font-size: 0.75rem;
   color: #2271b1;
-  margin-top: 8px;
+  margin-top: 0.5rem;
+  line-height: 1.4;
 }
 
 .scholar-copy-btn {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 4px;
-  border-radius: 2px;
+  padding: 0.25rem;
+  border-radius: 0.125rem;
   color: #646970;
   transition: color 0.15s ease-in-out;
+  flex-shrink: 0;
 }
 
 .scholar-copy-btn:hover {
@@ -467,22 +531,22 @@
 }
 
 .scholar-copy-btn .dashicons {
-  font-size: 16px;
+  font-size: 1rem;
 }
 
 /* System Card */
 .scholar-system-info {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .scholar-system-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 6px 0;
-  border-bottom: 1px solid #f0f0f1;
+  padding: 0.375rem 0;
+  border-bottom: 0.0625rem solid #f0f0f1;
 }
 
 .scholar-system-item:last-child {
@@ -490,15 +554,17 @@
 }
 
 .scholar-system-label {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: #646970;
   font-weight: 500;
+  line-height: 1.3;
 }
 
 .scholar-system-value {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: #1d2327;
   font-weight: 600;
+  line-height: 1.3;
 }
 
 .scholar-status-good {
@@ -511,33 +577,34 @@
 
 /* Notice Card */
 .scholar-notice-card {
-  border-left: 4px solid #d63638;
+  border-left: 0.25rem solid #d63638;
 }
 
 .scholar-notice-list {
-  margin: 8px 0 12px 20px;
-  font-size: 13px;
+  margin: 0.5rem 0 0.75rem 1.25rem;
+  font-size: 0.8125rem;
   color: #646970;
+  line-height: 1.4;
 }
 
 .scholar-notice-list li {
-  margin-bottom: 4px;
+  margin-bottom: 0.25rem;
 }
 
 .scholar-notice-recommendation {
   background: #f0f6fc;
-  padding: 8px 12px;
-  border-radius: 3px;
-  font-size: 13px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.1875rem;
+  font-size: 0.8125rem;
   color: #2271b1;
-  margin-top: 12px;
+  margin-top: 0.75rem;
+  line-height: 1.4;
 }
 
 /* Responsive Design */
-@media screen and (max-width: 1200px) {
+@media screen and (max-width: 75rem) {
   .scholar-main-content {
     flex: 0 0 65%;
-    /* Slightly less on smaller screens */
   }
 
   .scholar-sidebar-content {
@@ -545,10 +612,10 @@
   }
 }
 
-@media screen and (max-width: 900px) {
+@media screen and (max-width: 56.25rem) {
   .scholar-main-layout {
     flex-direction: column;
-    gap: 20px;
+    gap: 1.25rem;
   }
 
   .scholar-main-content {
@@ -558,40 +625,43 @@
   .scholar-sidebar-content {
     flex: none;
     order: -1;
-    /* Move sidebar to top on mobile */
   }
 
   .scholar-status-header {
     flex-direction: column;
     text-align: center;
-    gap: 16px;
+    gap: 1rem;
   }
 
   .scholar-status-stats {
     grid-template-columns: repeat(4, 1fr);
     justify-items: center;
-    gap: 16px;
+    gap: 1rem;
   }
 
   .form-table th {
     width: 100%;
-    padding-bottom: 8px;
+    padding-bottom: 0.5rem;
   }
 
   .form-table td {
     padding-top: 0;
   }
 
+  .form-table .description {
+    max-width: 100%;
+  }
+
   .scholar-form-actions {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: 0.75rem;
   }
 
   .scholar-shortcode {
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
+    gap: 0.5rem;
   }
 
   .scholar-refresh-controls {
@@ -604,13 +674,13 @@
   }
 }
 
-@media screen and (max-width: 480px) {
+@media screen and (max-width: 30rem) {
   .scholar-admin-container {
-    margin: 0 -20px;
+    margin: 0 -1.25rem;
   }
 
   .scholar-main-layout {
-    gap: 16px;
+    gap: 1rem;
   }
 
   .scholar-status-card,
@@ -624,46 +694,59 @@
   }
 
   .scholar-status-active {
-    border-left: 4px solid #00a32a;
+    border-left: 0.25rem solid #00a32a;
   }
 
   .scholar-status-empty {
-    border-left: 4px solid #dba617;
+    border-left: 0.25rem solid #dba617;
   }
 
   .scholar-notice-card {
-    border-left: 4px solid #d63638;
+    border-left: 0.25rem solid #d63638;
   }
 
   .scholar-settings-card {
-    padding: 16px;
+    padding: 1rem;
   }
 
   .scholar-status-header,
   .scholar-usage-card,
   .scholar-system-card,
   .scholar-notice-card {
-    padding: 16px 20px;
+    padding: 1rem 1.25rem;
   }
 
   .scholar-status-stats {
     grid-template-columns: 1fr 1fr;
-    padding: 12px 20px;
-    gap: 12px;
+    padding: 0.75rem 1.25rem;
+    gap: 0.75rem;
   }
 
   .scholar-system-item {
     flex-direction: column;
     align-items: flex-start;
-    gap: 2px;
+    gap: 0.125rem;
   }
 
   .scholar-loading-message {
-    padding: 10px 12px;
-    font-size: 13px;
+    padding: 0.625rem 0.75rem;
+    font-size: 0.8125rem;
   }
 
   .scholar-progress-steps {
-    font-size: 12px;
+    font-size: 0.75rem;
+  }
+
+  .form-table th {
+    font-size: 0.8125rem;
+  }
+
+  .form-table input[type="text"],
+  .form-table select {
+    font-size: 0.8125rem;
+  }
+
+  .scholar-checkbox-text {
+    font-size: 0.8125rem;
   }
 }
