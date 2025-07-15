@@ -63,8 +63,20 @@ class Settings
     // Validate profile ID format
     if (!empty($input['profile_id'])) {
       $profile_id = sanitize_text_field(trim($input['profile_id']));
-      if (strlen($profile_id) < 5 || strlen($profile_id) > 20) {
-        $validation_errors[] = __('Profile ID should be between 5-20 characters long.', 'scholar-profile');
+
+      // Check length (Google Scholar IDs are typically 12 characters, but allow some variation)
+      if (strlen($profile_id) < 8 || strlen($profile_id) > 20) {
+        $validation_errors[] = __('Profile ID should be between 8-20 characters long.', 'scholar-profile');
+      }
+      // Check format - only allow letters, numbers, underscores, and hyphens
+      elseif (!preg_match('/^[a-zA-Z0-9_-]+$/', $profile_id)) {
+        $validation_errors[] = __('Profile ID can only contain letters, numbers, underscores, and hyphens.', 'scholar-profile');
+      }
+      // Check for common user mistakes
+      elseif (strpos($profile_id, 'user=') !== false) {
+        $validation_errors[] = __('Please enter only the Profile ID, not the full URL. Remove "user=" part.', 'scholar-profile');
+      } elseif (strpos($profile_id, 'scholar.google.com') !== false) {
+        $validation_errors[] = __('Please enter only the Profile ID, not the full URL.', 'scholar-profile');
       }
     }
 
