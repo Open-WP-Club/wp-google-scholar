@@ -118,6 +118,28 @@ class Settings
       wp_die(__('You do not have sufficient permissions to access this page.'));
     }
 
+    // Rate limiting: Prevent refreshes more than once every 5 minutes
+    $last_manual_refresh = get_option('scholar_profile_last_manual_refresh', 0);
+    $cooldown_period = 5 * 60; // 5 minutes in seconds
+    $time_since_last = time() - $last_manual_refresh;
+
+    if ($time_since_last < $cooldown_period) {
+      $minutes_remaining = ceil(($cooldown_period - $time_since_last) / 60);
+      wp_redirect(add_query_arg(
+        array(
+          'page' => $this->page_slug,
+          'refresh' => 'failed',
+          'message' => 'rate_limited',
+          'minutes' => $minutes_remaining
+        ),
+        admin_url('options-general.php')
+      ));
+      exit;
+    }
+
+    // Update the last manual refresh timestamp
+    update_option('scholar_profile_last_manual_refresh', time());
+
     // Verify nonce
     if (!isset($_POST['scholar_refresh_nonce']) || !wp_verify_nonce($_POST['scholar_refresh_nonce'], 'refresh_scholar_profile')) {
       wp_die(__('Security check failed.'));
@@ -199,6 +221,13 @@ class Settings
               break;
             case 'scrape_failed':
               $message = __('Could not retrieve data from Google Scholar. Please check your Profile ID and try again.', 'scholar-profile');
+              break;
+            case 'rate_limited':
+              $minutes = isset($_GET['minutes']) ? intval($_GET['minutes']) : 5;
+              $message = sprintf(
+                __('Please wait %d more minute(s) before refreshing again. This prevents rate limiting from Google Scholar.', 'scholar-profile'),
+                $minutes
+              );
               break;
           }
         }
