@@ -21,9 +21,27 @@ class Shortcode
     $options = get_option('scholar_profile_settings');
     $data = get_option('scholar_profile_data');
 
+    // Check data status and display appropriate messages
+    $scheduler = new Scheduler();
+    $data_status = $scheduler->get_data_status();
+    $is_data_stale = $scheduler->is_data_stale();
+
     if (!$data) {
-      return '<p class="scholar-error">' . __('No profile data available. Please check the plugin settings.', 'scholar-profile') . '</p>';
+      // No data available at all
+      if ($data_status['status'] === 'error') {
+        return $this->render_error_message($data_status['message']);
+      } else {
+        return $this->render_no_data_message();
+      }
     }
+
+    // Validate that the data is complete
+    if (!$this->validate_display_data($data)) {
+      return $this->render_error_message(__('Profile data appears to be incomplete or corrupted.', 'scholar-profile'));
+    }
+
+    // Check if data is stale and should show a warning
+    $show_stale_warning = $is_data_stale && ($data_status['status'] === 'stale' || $data_status['status'] === 'error');
 
     // Apply sorting if specified
     if (!empty($atts['sort_by']) && !empty($data['publications'])) {
@@ -53,6 +71,11 @@ class Shortcode
 
     ob_start();
 
+    // Show stale data warning if needed
+    if ($show_stale_warning) {
+      $this->render_stale_data_warning($data_status);
+    }
+
     // Main wrapper with pagination data
     echo '<div class="scholar-profile" data-pagination=\'' . json_encode($pagination_data) . '\'>';
 
@@ -73,6 +96,107 @@ class Shortcode
     return ob_get_clean();
   }
 
+  /**
+   * Render error message for display issues
+   */
+  protected function render_error_message($message = '')
+  {
+    $default_message = __('Unable to display profile data. Please contact the site administrator.', 'scholar-profile');
+    $display_message = !empty($message) ? $message : $default_message;
+
+    return sprintf(
+      '<div class="scholar-error-message">
+        <p class="scholar-error">
+          <span class="scholar-error-icon">⚠️</span>
+          %s
+        </p>
+      </div>',
+      esc_html($display_message)
+    );
+  }
+
+  /**
+   * Render message when no data is available
+   */
+  protected function render_no_data_message()
+  {
+    return '<div class="scholar-no-data-message">
+      <p class="scholar-info">
+        <span class="scholar-info-icon">📚</span>
+        ' . __('Google Scholar profile data is not yet available. Please check back later.', 'scholar-profile') . '
+      </p>
+    </div>';
+  }
+
+  /**
+   * Render warning for stale data
+   */
+  protected function render_stale_data_warning($data_status)
+  {
+    $last_update = get_option('scholar_profile_last_update', 0);
+    $age_text = '';
+
+    if ($last_update) {
+      $age_days = ceil((time() - $last_update) / DAY_IN_SECONDS);
+      if ($age_days == 1) {
+        $age_text = __('1 day ago', 'scholar-profile');
+      } elseif ($age_days < 30) {
+        $age_text = sprintf(__('%d days ago', 'scholar-profile'), $age_days);
+      } elseif ($age_days < 365) {
+        $age_text = sprintf(__('%d months ago', 'scholar-profile'), ceil($age_days / 30));
+      } else {
+        $age_text = sprintf(__('%d years ago', 'scholar-profile'), ceil($age_days / 365));
+      }
+    }
+
+    echo '<div class="scholar-stale-warning">
+      <p class="scholar-warning">
+        <span class="scholar-warning-icon">⚠️</span>
+        <strong>' . __('Data Update Notice:', 'scholar-profile') . '</strong> ';
+
+    if ($data_status['status'] === 'stale') {
+      echo __('This profile data may be outdated', 'scholar-profile');
+      if ($age_text) {
+        echo ' (' . sprintf(__('last updated %s', 'scholar-profile'), $age_text) . ')';
+      }
+      echo '. ' . __('Automatic updates are currently experiencing issues.', 'scholar-profile');
+    } elseif ($data_status['status'] === 'error') {
+      echo __('Unable to update this profile data.', 'scholar-profile');
+      if ($age_text) {
+        echo ' ' . sprintf(__('Showing data from %s.', 'scholar-profile'), $age_text);
+      }
+    }
+
+    echo '</p></div>';
+  }
+
+  /**
+   * Validate that display data is reasonable
+   */
+  protected function validate_display_data($data)
+  {
+    if (!is_array($data)) {
+      return false;
+    }
+
+    // Check for essential fields
+    if (empty($data['name'])) {
+      return false;
+    }
+
+    // Publications should be an array (even if empty)
+    if (!isset($data['publications']) || !is_array($data['publications'])) {
+      return false;
+    }
+
+    // Citations should be an array
+    if (!isset($data['citations']) || !is_array($data['citations'])) {
+      return false;
+    }
+
+    return true;
+  }
+
   protected function render_header($data, $options)
   {
     if (!$options['show_info']) {
@@ -81,18 +205,24 @@ class Shortcode
 
     echo '<div class="scholar-header">';
 
-    // Avatar
+    // Avatar with fallback handling
     if ($options['show_avatar'] && !empty($data['avatar'])) {
+      // Verify avatar URL is still valid
+      $avatar_url = $data['avatar'];
       echo '<div class="scholar-avatar">
-                <img src="' . esc_url($data['avatar']) . '" 
-                     alt="' . esc_attr($data['name']) . ' profile photo">
+                <img src="' . esc_url($avatar_url) . '" 
+                     alt="' . esc_attr($data['name']) . ' profile photo"
+                     onerror="this.style.display=\'none\'">
               </div>';
     }
 
     // Basic info
     echo '<div class="scholar-basic-info">
-            <h1 class="scholar-name">' . esc_html($data['name']) . '</h1>
-            <div class="scholar-affiliation">' . esc_html($data['affiliation']) . '</div>';
+            <h1 class="scholar-name">' . esc_html($data['name']) . '</h1>';
+
+    if (!empty($data['affiliation'])) {
+      echo '<div class="scholar-affiliation">' . esc_html($data['affiliation']) . '</div>';
+    }
 
     // Research interests with links
     if (!empty($data['interests'])) {
@@ -115,7 +245,16 @@ class Shortcode
 
   protected function render_publications($data, $options, $paged_publications, $current_page, $total_pages, $per_page)
   {
-    if (!$options['show_publications'] || empty($data['publications'])) {
+    if (!$options['show_publications']) {
+      return;
+    }
+
+    // Handle case where publications might be empty
+    if (empty($data['publications'])) {
+      echo '<div class="scholar-publications">
+              <h2>' . __('Publications', 'scholar-profile') . '</h2>
+              <p class="scholar-no-publications">' . __('No publications found.', 'scholar-profile') . '</p>
+            </div>';
       return;
     }
 
@@ -135,6 +274,14 @@ class Shortcode
           __('Showing %d-%d of %d publications', 'scholar-profile'),
           $start_index,
           $end_index,
+          $total_publications
+        ) . '</span>
+            </div>';
+    } else {
+      echo '<div class="scholar-publications-info">
+                <span class="scholar-publications-count">' .
+        sprintf(
+          _n('%d publication', '%d publications', $total_publications, 'scholar-profile'),
           $total_publications
         ) . '</span>
             </div>';
@@ -167,22 +314,27 @@ class Shortcode
                     <a href="' . esc_url($pub['google_scholar_url']) . '" 
                        class="scholar-publication-title" 
                        target="_blank" rel="noopener noreferrer">'
-        . esc_html($pub['title']) . '</a>
-                    <div class="scholar-publication-authors">'
-        . esc_html($pub['authors']) . '</div>
-                    <div class="scholar-publication-venue">'
-        . esc_html($pub['venue']) . '</div>
-                </td>
+        . esc_html($pub['title']) . '</a>';
+
+      if (!empty($pub['authors'])) {
+        echo '<div class="scholar-publication-authors">' . esc_html($pub['authors']) . '</div>';
+      }
+
+      if (!empty($pub['venue'])) {
+        echo '<div class="scholar-publication-venue">' . esc_html($pub['venue']) . '</div>';
+      }
+
+      echo '</td>
                 <td class="publication-year" data-year="' . esc_attr($pub['year']) . '">'
         . esc_html($pub['year']) . '</td>
                 <td class="publication-citations" data-citations="' . esc_attr($pub['citations']) . '">';
 
-      if ($pub['citations'] > 0) {
+      if ($pub['citations'] > 0 && !empty($pub['citations_url'])) {
         echo '<a href="' . esc_url($pub['citations_url']) . '" 
                      target="_blank" rel="noopener noreferrer">'
           . number_format($pub['citations']) . '</a>';
       } else {
-        echo '0';
+        echo intval($pub['citations']);
       }
 
       echo '</td></tr>';
@@ -282,7 +434,7 @@ class Shortcode
 
   protected function render_metrics($data)
   {
-    // Check if citations data exists and has non-zero values
+    // Check if citations data exists and has meaningful values
     if (
       empty($data['citations']) ||
       ($data['citations']['total'] === 0 &&
@@ -339,10 +491,12 @@ class Shortcode
       echo '<div class="scholar-coauthor">
                 <div class="scholar-coauthor-header">';
 
+      // Avatar with fallback handling
       if (!empty($coauthor['avatar'])) {
         echo '<img src="' . esc_url($coauthor['avatar']) . '" 
                    alt="' . esc_attr($coauthor['name']) . '" 
-                   class="scholar-coauthor-avatar">';
+                   class="scholar-coauthor-avatar"
+                   onerror="this.style.display=\'none\'">';
       }
 
       echo '<div class="scholar-coauthor-main">

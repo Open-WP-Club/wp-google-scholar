@@ -13,6 +13,7 @@ class Settings
     add_action('admin_init', array($this, 'register_settings'));
     add_action('admin_init', array($this, 'handle_form_submission'));
     add_action('admin_post_refresh_scholar_profile', array($this, 'handle_manual_refresh'));
+    add_action('admin_post_clear_stale_data', array($this, 'handle_clear_stale_data'));
     add_filter(
       'plugin_action_links_' . plugin_basename(WP_SCHOLAR_PLUGIN_DIR . 'wp-google-scholar.php'),
       array($this, 'add_settings_link')
@@ -154,6 +155,15 @@ class Settings
       exit;
     }
 
+    // Update status to indicate we're starting a manual refresh
+    $scheduler = new Scheduler();
+    $scheduler_reflection = new \ReflectionClass($scheduler);
+    $update_status_method = $scheduler_reflection->getMethod('update_data_status');
+    $update_status_method->setAccessible(true);
+    $update_status_method->invoke($scheduler, 'updating', 'Manual refresh in progress...');
+
+    wp_scholar_log("Starting manual refresh for profile: " . $options['profile_id']);
+
     $scraper = new Scraper();
 
     // Configure scraper limits based on settings
@@ -164,22 +174,116 @@ class Settings
 
     $data = $scraper->scrape($options['profile_id']);
 
-    if ($data) {
+    if ($data && $this->validate_scraped_data($data)) {
       update_option('scholar_profile_data', $data);
       update_option('scholar_profile_last_update', time());
 
-      // Clean redirect with only refresh parameter
+      // Reset consecutive failures counter
+      delete_option('scholar_profile_consecutive_failures');
+
+      // Update status to success
+      $update_status_method->invoke($scheduler, 'success', sprintf(
+        'Manual refresh successful at %s - Found %d publications',
+        date('Y-m-d H:i:s'),
+        count($data['publications'])
+      ));
+
+      wp_scholar_log("Manual refresh successful for profile: " . $options['profile_id']);
+
       wp_redirect(add_query_arg(
         array('page' => $this->page_slug, 'refresh' => 'success'),
         admin_url('options-general.php')
       ));
     } else {
+      // Manual refresh failed
+      $consecutive_failures = get_option('scholar_profile_consecutive_failures', 0) + 1;
+      update_option('scholar_profile_consecutive_failures', $consecutive_failures);
+
+      $existing_data = get_option('scholar_profile_data');
+      $has_existing_data = !empty($existing_data) && !empty($existing_data['name']);
+
+      if ($has_existing_data) {
+        $last_update = get_option('scholar_profile_last_update', 0);
+        $age_days = $last_update ? ceil((time() - $last_update) / DAY_IN_SECONDS) : 'unknown';
+
+        $update_status_method->invoke($scheduler, 'stale', sprintf(
+          'Manual refresh failed. Keeping existing data from %s days ago.',
+          $age_days
+        ));
+      } else {
+        $update_status_method->invoke($scheduler, 'error', 'Manual refresh failed and no existing data available.');
+      }
+
+      wp_scholar_log("Manual refresh failed for profile: " . $options['profile_id']);
+
       wp_redirect(add_query_arg(
         array('page' => $this->page_slug, 'refresh' => 'failed', 'message' => 'scrape_failed'),
         admin_url('options-general.php')
       ));
     }
     exit;
+  }
+
+  /**
+   * Handle clearing stale data
+   */
+  public function handle_clear_stale_data()
+  {
+    if (!current_user_can('manage_options')) {
+      wp_die(__('You do not have sufficient permissions to access this page.'));
+    }
+
+    // Verify nonce
+    if (!isset($_POST['scholar_clear_nonce']) || !wp_verify_nonce($_POST['scholar_clear_nonce'], 'clear_stale_data')) {
+      wp_die(__('Security check failed.'));
+    }
+
+    $scheduler = new Scheduler();
+    $scheduler->clear_stale_data();
+
+    wp_redirect(add_query_arg(
+      array('page' => $this->page_slug, 'clear' => 'success'),
+      admin_url('options-general.php')
+    ));
+    exit;
+  }
+
+  /**
+   * Validate scraped data (same as in Scheduler)
+   */
+  private function validate_scraped_data($data)
+  {
+    if (!is_array($data)) {
+      wp_scholar_log("Data validation failed: not an array");
+      return false;
+    }
+
+    // Check for required fields
+    $required_fields = ['name', 'publications'];
+    foreach ($required_fields as $field) {
+      if (!isset($data[$field]) || empty($data[$field])) {
+        wp_scholar_log("Data validation failed: missing required field '$field'");
+        return false;
+      }
+    }
+
+    // Check if publications array is reasonable
+    if (!is_array($data['publications'])) {
+      wp_scholar_log("Data validation failed: publications is not an array");
+      return false;
+    }
+
+    // Basic sanity check for empty publications
+    if (count($data['publications']) === 0) {
+      $existing_data = get_option('scholar_profile_data');
+      if ($existing_data && count($existing_data['publications']) > 0) {
+        wp_scholar_log("Data validation warning: new data has 0 publications but existing data has publications");
+        return false;
+      }
+    }
+
+    wp_scholar_log("Data validation passed: " . count($data['publications']) . " publications found");
+    return true;
   }
 
   public function render_settings_page()
@@ -189,6 +293,9 @@ class Settings
     }
 
     $options = get_option($this->option_name);
+    $scheduler = new Scheduler();
+    $data_status = $scheduler->get_data_status();
+    $is_data_stale = $scheduler->is_data_stale();
     $messages = array();
 
     // Debug: Log all URL parameters when DEBUG is enabled
@@ -204,8 +311,17 @@ class Settings
       );
     }
 
+    // Handle clear stale data status
+    if (isset($_GET['clear'])) {
+      if ($_GET['clear'] === 'success') {
+        $messages[] = array(
+          'type' => 'updated',
+          'message' => __('✓ Stale data cleared successfully!', 'scholar-profile')
+        );
+      }
+    }
     // Handle refresh status messages (check refresh first, before settings-updated)
-    if (isset($_GET['refresh'])) {
+    elseif (isset($_GET['refresh'])) {
       if ($_GET['refresh'] === 'success') {
         $messages[] = array(
           'type' => 'updated',
@@ -220,7 +336,12 @@ class Settings
               $message = __('Please enter a Profile ID before refreshing.', 'scholar-profile');
               break;
             case 'scrape_failed':
-              $message = __('Could not retrieve data from Google Scholar. Please check your Profile ID and try again.', 'scholar-profile');
+              $existing_data = get_option('scholar_profile_data');
+              if (!empty($existing_data)) {
+                $message = __('Could not retrieve new data from Google Scholar, but existing data is preserved. Please check your Profile ID and try again later.', 'scholar-profile');
+              } else {
+                $message = __('Could not retrieve data from Google Scholar. Please check your Profile ID and try again.', 'scholar-profile');
+              }
               break;
             case 'rate_limited':
               $minutes = isset($_GET['minutes']) ? intval($_GET['minutes']) : 5;
@@ -243,6 +364,15 @@ class Settings
       $messages[] = array(
         'type' => 'updated',
         'message' => __('✓ Settings saved successfully!', 'scholar-profile')
+      );
+    }
+
+    // Add data status warning if needed
+    if ($is_data_stale && !empty(get_option('scholar_profile_data'))) {
+      $status_message = $data_status['message'] ?: 'Data may be outdated';
+      $messages[] = array(
+        'type' => 'warning',
+        'message' => '⚠ ' . __('Data Status Warning: ', 'scholar-profile') . $status_message
       );
     }
 
