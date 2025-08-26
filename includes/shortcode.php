@@ -4,9 +4,12 @@ namespace WPScholar;
 
 class Shortcode
 {
+  private $seo_handler;
+
   public function __construct()
   {
     add_shortcode('scholar_profile', array($this, 'render_profile'));
+    $this->seo_handler = new SEO();
   }
 
   public function render_profile($atts)
@@ -39,6 +42,9 @@ class Shortcode
     if (!$this->validate_display_data($data)) {
       return $this->render_error_message(__('Profile data appears to be incomplete or corrupted.', 'scholar-profile'));
     }
+
+    // Add SEO enhancements
+    $this->seo_handler->add_profile_seo($data, $options);
 
     // Check if data is stale and should show a warning
     $show_stale_warning = $is_data_stale && ($data_status['status'] === 'stale' || $data_status['status'] === 'error');
@@ -92,6 +98,9 @@ class Shortcode
     echo '</div>'; // Close sidebar
 
     echo '</div>'; // Close profile wrapper
+
+    // Add structured data
+    $this->seo_handler->add_structured_data($data, $paged_publications);
 
     return ob_get_clean();
   }
