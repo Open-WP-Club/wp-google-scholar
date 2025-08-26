@@ -438,17 +438,91 @@ class Scraper
       return false;
     }
 
-    // Check for common error indicators
-    if (
-      strpos($html, 'could not be found') !== false ||
-      strpos($html, 'not available') !== false ||
-      strpos($html, 'error') !== false
-    ) {
-      wp_scholar_log('Profile appears to be unavailable or not found');
+    // Enhanced error detection with better specificity
+    if (!$this->is_valid_scholar_profile($html)) {
       return false;
     }
 
     return $this->parse_main_profile_html($html, $profile_id);
+  }
+
+  /**
+   * More sophisticated method to detect if we got a valid Scholar profile
+   */
+  private function is_valid_scholar_profile($html)
+  {
+    // Log response length for debugging
+    wp_scholar_log("Received HTML response length: " . strlen($html) . " bytes");
+
+    // Check for specific Scholar profile indicators
+    $required_elements = [
+      'gsc_prf', // Profile container
+      'citations', // Citations table
+      'gsc_a_tr' // Publication rows (even if empty)
+    ];
+
+    $found_elements = [];
+    foreach ($required_elements as $element) {
+      if (strpos($html, $element) !== false) {
+        $found_elements[] = $element;
+      }
+    }
+
+    wp_scholar_log("Found Scholar elements: " . implode(', ', $found_elements) . " out of " . count($required_elements));
+
+    // Must have at least the profile container
+    if (!in_array('gsc_prf', $found_elements)) {
+      wp_scholar_log("Missing profile container - not a valid Scholar profile");
+
+      // Check for specific error patterns more carefully
+      if ($this->detect_scholar_errors($html)) {
+        return false;
+      }
+
+      // If no clear error but no profile container, likely an issue
+      wp_scholar_log("No profile container found but no clear error detected");
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Detect specific Scholar error patterns without false positives
+   */
+  private function detect_scholar_errors($html)
+  {
+    // More specific error patterns
+    $error_patterns = [
+      'This profile is not available',
+      'User profiles are not publicly viewable',
+      'The profile you are looking for could not be found',
+      'Citations to this profile are not available',
+      '<title>Error',
+      'class="error"'
+    ];
+
+    foreach ($error_patterns as $pattern) {
+      if (stripos($html, $pattern) !== false) {
+        wp_scholar_log("Detected specific error pattern: $pattern");
+
+        // Log a snippet around the error for context
+        $pos = stripos($html, $pattern);
+        $start = max(0, $pos - 100);
+        $snippet = substr($html, $start, 200);
+        wp_scholar_log("Error context: " . htmlspecialchars($snippet));
+
+        return true;
+      }
+    }
+
+    // Check for redirect to login or blocked page
+    if (strpos($html, 'accounts.google.com') !== false && strpos($html, 'signin') !== false) {
+      wp_scholar_log("Detected redirect to Google login - profile may be private or blocked");
+      return true;
+    }
+
+    return false;
   }
 
   private function scrape_all_publications($profile_id)
@@ -558,6 +632,15 @@ class Scraper
     // Validate that we extracted meaningful data
     if (empty($data['name'])) {
       wp_scholar_log("Failed to extract profile name - page may have changed structure");
+
+      // Log more info about the page structure for debugging
+      $name_elements = $xpath->query("//div[@id='gsc_prf_in']");
+      wp_scholar_log("Found " . $name_elements->length . " name elements");
+
+      if ($name_elements->length > 0) {
+        wp_scholar_log("First name element content: " . trim($name_elements->item(0)->textContent));
+      }
+
       return false;
     }
 
