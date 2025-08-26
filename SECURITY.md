@@ -5,3 +5,4 @@ The Open-WP-Club and community take security bugs in our plugins seriously. We a
 ## Reporting a Vulnerability
 
 
+To report a security issue, please use the GitHub Security Advisory ["Report a Vulnerability"](https://github.com/Open-WP-Club/wp-google-scholar/security/advisories/new) tab.
