@@ -31,13 +31,88 @@
   grid-column: 2;
 }
 
-/* Header styles */
-.scholar-header {
-  display: flex;
-  gap: 1.25rem;
-  margin-bottom: 1.875rem;
+/* Unified Card Design System */
+.scholar-card {
+  background: #fff;
+  border: 0.063rem solid var(--scholar-border-color);
+  border-radius: 0.5rem;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+  box-shadow: 0 0.063rem 0.1875rem rgba(0, 0, 0, 0.04);
 }
 
+.scholar-card-header {
+  background: var(--scholar-background-light);
+  border-bottom: 0.063rem solid var(--scholar-border-color);
+  padding: 1rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.scholar-card-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--scholar-text-color);
+  margin: 0;
+}
+
+.scholar-card-info {
+  font-size: 0.875rem;
+  color: var(--scholar-text-secondary);
+  font-weight: 500;
+}
+
+.scholar-card-content {
+  padding: 1.25rem;
+  background: #fff;
+}
+
+/* Profile Info Card */
+.scholar-profile-info {
+  /* Uses scholar-card classes */
+}
+
+.scholar-profile-header {
+  display: flex;
+  gap: 1.25rem;
+  align-items: center;
+}
+
+.scholar-profile-details {
+  flex-grow: 1;
+}
+
+.scholar-profile-details h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  color: var(--scholar-text-color);
+}
+
+.scholar-profile-details .scholar-affiliation {
+  color: var(--scholar-text-secondary);
+  margin: 0 0 0.75rem 0;
+  font-size: 0.875rem;
+}
+
+/* Research Interests in Profile Card */
+.scholar-profile-interests {
+  margin-top: 0.75rem;
+}
+
+.scholar-profile-interests h3 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--scholar-text-color);
+  margin: 0 0 0.5rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.025rem;
+}
+
+/* Avatar styles */
 .scholar-avatar {
   flex-shrink: 0;
 }
@@ -47,23 +122,6 @@
   height: 7.5rem;
   border-radius: 50%;
   object-fit: cover;
-}
-
-.scholar-basic-info {
-  flex-grow: 1;
-}
-
-.scholar-name {
-  font-size: 1.5rem;
-  font-weight: normal;
-  margin: 0 0 0.313rem 0;
-  color: var(--scholar-text-color);
-}
-
-.scholar-affiliation {
-  color: var(--scholar-text-secondary);
-  margin: 0 0 0.625rem 0;
-  font-size: 0.875rem;
 }
 
 /* Fields/Interests */
@@ -88,35 +146,16 @@
 }
 
 /* Publications Section */
-.scholar-publications h2 {
-  font-size: 1.25rem;
-  color: var(--scholar-text-color);
-  margin-bottom: 1rem;
+.scholar-publications {
+  /* Uses scholar-card classes */
 }
 
-.scholar-publications-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.scholar-publications-info {
-  font-size: 0.875rem;
-  color: var(--scholar-text-secondary);
-}
-
-.scholar-publications-count {
-  font-weight: 500;
-}
-
-/* Publications Table */
+/* Publications Table - Updated for card structure */
 .scholar-publications-table {
   width: 100%;
   border-collapse: collapse;
-  margin-bottom: 1.5rem;
+  margin: 0;
+  /* Remove margin since it's now in card */
 }
 
 .scholar-publications-table th {
@@ -227,7 +266,8 @@
 
 /* Pagination Styles */
 .scholar-pagination {
-  margin: 2rem 0 1rem 0;
+  margin: 1.5rem 0 0 0;
+  /* Only top margin since we're in a card */
 }
 
 .scholar-pagination-wrapper {
@@ -364,19 +404,9 @@
   color: var(--scholar-primary-hover);
 }
 
-/* Metrics box */
-.scholar-metrics-box {
-  background: var(--scholar-background-light);
-  border: 0.063rem solid var(--scholar-border-color);
-  border-radius: 0.5rem;
-  padding: 1.25rem;
-  margin-bottom: 1.25rem;
-}
-
-.scholar-metrics-title {
-  font-size: 1.125rem;
-  color: var(--scholar-text-color);
-  margin: 0 0 0.938rem 0;
+/* Metrics - Updated to use card design */
+.scholar-metrics {
+  /* Uses scholar-card classes */
 }
 
 .scholar-metrics-table {
@@ -397,31 +427,29 @@
   color: var(--scholar-text-secondary);
 }
 
-/* Co-authors */
+/* Co-authors - Updated to use card design */
 .scholar-coauthors {
-  margin-top: 1.875rem;
-  background: #fff;
-  border-radius: 0.5rem;
-  overflow: hidden;
-  border: 0.063rem solid var(--scholar-border-color);
+  /* Uses scholar-card classes */
 }
 
-.scholar-section-title {
-  font-size: 1.125rem;
-  color: var(--scholar-text-color);
-  margin: 0;
-  padding: 0.938rem 1.25rem;
-  border-bottom: 0.063rem solid #e8eaed;
-  background: var(--scholar-background-light);
+.scholar-coauthor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .scholar-coauthor {
-  padding: 0.938rem 1.25rem;
+  padding: 1rem 0;
   border-bottom: 0.063rem solid #e8eaed;
+}
+
+.scholar-coauthor:first-child {
+  padding-top: 0;
 }
 
 .scholar-coauthor:last-child {
   border-bottom: none;
+  padding-bottom: 0;
 }
 
 .scholar-coauthor-header {
@@ -503,7 +531,20 @@
     grid-template-columns: 1fr;
   }
 
-  .scholar-header {
+  /* Card headers responsive */
+  .scholar-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+  }
+
+  .scholar-card-content {
+    padding: 1rem;
+  }
+
+  /* Profile header responsive */
+  .scholar-profile-header {
     flex-direction: column;
     align-items: center;
     text-align: center;
@@ -517,13 +558,6 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-  }
-
-  /* Publications header responsive */
-  .scholar-publications-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.75rem;
   }
 
   /* Improve sortable headers on mobile */
@@ -581,12 +615,30 @@
     padding: 0.75rem;
   }
 
+  /* Card adjustments for small screens */
+  .scholar-card {
+    border-radius: 0.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .scholar-card-header {
+    padding: 0.75rem 1rem;
+  }
+
+  .scholar-card-content {
+    padding: 0.875rem 1rem;
+  }
+
+  .scholar-card-title {
+    font-size: 1rem;
+  }
+
   .scholar-avatar img {
     width: 6rem;
     height: 6rem;
   }
 
-  .scholar-name {
+  .scholar-profile-details h1 {
     font-size: 1.25rem;
   }
 
@@ -668,5 +720,199 @@
 
   .scholar-publications-table th.sortable:hover {
     background: none;
+  }
+}
+
+/* Enhanced status message styles */
+.scholar-error-message,
+.scholar-no-data-message,
+.scholar-stale-warning {
+  margin: 1rem 0;
+  padding: 1rem 1.25rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.scholar-error-message {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.scholar-no-data-message {
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  color: #0c4a6e;
+}
+
+.scholar-stale-warning {
+  background: #fffbeb;
+  border: 1px solid #fed7aa;
+  color: #92400e;
+}
+
+.scholar-error,
+.scholar-info,
+.scholar-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0;
+  font-weight: 500;
+}
+
+.scholar-error-icon,
+.scholar-info-icon,
+.scholar-warning-icon {
+  font-size: 1.125rem;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.scholar-no-publications {
+  color: var(--scholar-text-secondary);
+  font-style: italic;
+  text-align: center;
+  padding: 2rem 1rem;
+  border: 1px solid var(--scholar-border-color);
+  border-radius: 0.375rem;
+  background: var(--scholar-background-light);
+}
+
+/* Avatar fallback styling */
+.scholar-avatar img[style*="display:none"],
+.scholar-coauthor-avatar[style*="display:none"] {
+  display: none !important;
+}
+
+.scholar-avatar:has(img[style*="display:none"]),
+.scholar-coauthor-header:has(img[style*="display:none"]) .scholar-coauthor-avatar {
+  display: none;
+}
+
+/* Fallback for browsers that don't support :has() */
+.scholar-avatar-fallback,
+.scholar-coauthor-avatar-fallback {
+  width: 7.5rem;
+  height: 7.5rem;
+  border-radius: 50%;
+  background: var(--scholar-background-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--scholar-text-secondary);
+  font-size: 2rem;
+  border: 2px solid var(--scholar-border-color);
+}
+
+.scholar-coauthor-avatar-fallback {
+  width: 3.125rem;
+  height: 3.125rem;
+  font-size: 1rem;
+}
+
+/* Enhanced error state styling */
+.scholar-publications-table tbody:empty::after {
+  content: "No publications to display";
+  display: block;
+  text-align: center;
+  padding: 2rem;
+  color: var(--scholar-text-secondary);
+  font-style: italic;
+}
+
+/* Loading state improvements */
+.scholar-profile[data-loading="true"] {
+  opacity: 0.7;
+  pointer-events: none;
+  position: relative;
+}
+
+.scholar-profile[data-loading="true"]::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2rem;
+  height: 2rem;
+  margin: -1rem 0 0 -1rem;
+  border: 3px solid var(--scholar-border-color);
+  border-top-color: var(--scholar-primary-color);
+  border-radius: 50%;
+  animation: scholar-spin 1s linear infinite;
+  z-index: 1000;
+}
+
+@keyframes scholar-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Enhanced responsive behavior for status messages */
+@media (max-width: 48rem) {
+
+  .scholar-error-message,
+  .scholar-no-data-message,
+  .scholar-stale-warning {
+    margin: 0.75rem 0;
+    padding: 0.875rem 1rem;
+    font-size: 0.8125rem;
+  }
+
+  .scholar-error,
+  .scholar-info,
+  .scholar-warning {
+    gap: 0.375rem;
+  }
+
+  .scholar-error-icon,
+  .scholar-info-icon,
+  .scholar-warning-icon {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 30rem) {
+
+  .scholar-error-message,
+  .scholar-no-data-message,
+  .scholar-stale-warning {
+    margin: 0.5rem 0;
+    padding: 0.75rem 0.875rem;
+    font-size: 0.75rem;
+    border-radius: 0.25rem;
+  }
+
+  .scholar-no-publications {
+    padding: 1.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+}
+
+/* Accessibility improvements */
+.scholar-error-message,
+.scholar-stale-warning {
+  role: alert;
+}
+
+.scholar-no-data-message {
+  role: status;
+}
+
+/* Print styles for status messages */
+@media print {
+  .scholar-stale-warning {
+    background: none;
+    border: 1px solid #ccc;
+    color: #333;
+  }
+
+  .scholar-error-message,
+  .scholar-no-data-message {
+    background: none;
+    border: 1px solid #ccc;
+    color: #333;
   }
 }

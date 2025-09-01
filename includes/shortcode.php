@@ -212,22 +212,24 @@ class Shortcode
       return;
     }
 
-    echo '<div class="scholar-header">';
+    echo '<div class="scholar-card scholar-profile-info">
+            <div class="scholar-card-content">
+                <div class="scholar-profile-header">';
 
     // Avatar with fallback handling
     if ($options['show_avatar'] && !empty($data['avatar'])) {
       // Verify avatar URL is still valid
       $avatar_url = $data['avatar'];
       echo '<div class="scholar-avatar">
-                <img src="' . esc_url($avatar_url) . '" 
-                     alt="' . esc_attr($data['name']) . ' profile photo"
-                     onerror="this.style.display=\'none\'">
-              </div>';
+                    <img src="' . esc_url($avatar_url) . '" 
+                         alt="' . esc_attr($data['name']) . ' profile photo"
+                         onerror="this.style.display=\'none\'">
+                  </div>';
     }
 
-    // Basic info
-    echo '<div class="scholar-basic-info">
-            <h1 class="scholar-name">' . esc_html($data['name']) . '</h1>';
+    // Basic info with name moved here
+    echo '<div class="scholar-profile-details">
+                <h1>' . esc_html($data['name']) . '</h1>';
 
     if (!empty($data['affiliation'])) {
       echo '<div class="scholar-affiliation">' . esc_html($data['affiliation']) . '</div>';
@@ -235,9 +237,9 @@ class Shortcode
 
     // Research interests with links
     if (!empty($data['interests'])) {
-      echo '<div class="scholar-interests">
-              <h3>' . __('Research Interests', 'scholar-profile') . '</h3>
-              <div class="scholar-fields">';
+      echo '<div class="scholar-profile-interests">
+                  <h3>' . __('Research Interests', 'scholar-profile') . '</h3>
+                  <div class="scholar-fields">';
       foreach ($data['interests'] as $interest) {
         if (is_array($interest) && !empty($interest['url'])) {
           echo '<a href="' . esc_url($interest['url']) . '" class="scholar-field" target="_blank" rel="noopener noreferrer">' . esc_html($interest['text']) . '</a>';
@@ -249,7 +251,7 @@ class Shortcode
       echo '</div></div>';
     }
 
-    echo '</div></div>';
+    echo '</div></div></div></div>';
   }
 
   protected function render_publications($data, $options, $paged_publications, $current_page, $total_pages, $per_page)
@@ -260,9 +262,13 @@ class Shortcode
 
     // Handle case where publications might be empty
     if (empty($data['publications'])) {
-      echo '<div class="scholar-publications">
-              <h2>' . __('Publications', 'scholar-profile') . '</h2>
-              <p class="scholar-no-publications">' . __('No publications found.', 'scholar-profile') . '</p>
+      echo '<div class="scholar-card scholar-publications">
+              <div class="scholar-card-header">
+                  <h2 class="scholar-card-title">' . __('Publications', 'scholar-profile') . '</h2>
+              </div>
+              <div class="scholar-card-content">
+                  <p class="scholar-no-publications">' . __('No publications found.', 'scholar-profile') . '</p>
+              </div>
             </div>';
       return;
     }
@@ -271,32 +277,29 @@ class Shortcode
     $start_index = ($current_page - 1) * $per_page + 1;
     $end_index = min($current_page * $per_page, $total_publications);
 
-    echo '<div class="scholar-publications">
-            <div class="scholar-publications-header">
-                <h2>' . __('Publications', 'scholar-profile') . '</h2>';
+    echo '<div class="scholar-card scholar-publications">
+            <div class="scholar-card-header">
+                <h2 class="scholar-card-title">' . __('Publications', 'scholar-profile') . '</h2>';
 
     // Show publication count and pagination info
     if ($total_pages > 1) {
-      echo '<div class="scholar-publications-info">
-                <span class="scholar-publications-count">' .
+      echo '<div class="scholar-card-info">' .
         sprintf(
           __('Showing %d-%d of %d publications', 'scholar-profile'),
           $start_index,
           $end_index,
           $total_publications
-        ) . '</span>
-            </div>';
+        ) . '</div>';
     } else {
-      echo '<div class="scholar-publications-info">
-                <span class="scholar-publications-count">' .
+      echo '<div class="scholar-card-info">' .
         sprintf(
           _n('%d publication', '%d publications', $total_publications, 'scholar-profile'),
           $total_publications
-        ) . '</span>
-            </div>';
+        ) . '</div>';
     }
 
-    echo '</div>';
+    echo '</div>
+            <div class="scholar-card-content">';
 
     echo '<table class="scholar-publications-table" data-sortable="true">
                 <thead>
@@ -356,7 +359,7 @@ class Shortcode
       $this->render_pagination($current_page, $total_pages);
     }
 
-    echo '</div>';
+    echo '</div></div>';
   }
 
   protected function render_pagination($current_page, $total_pages)
@@ -456,34 +459,38 @@ class Shortcode
       return;
     }
 
-    echo '<div class="scholar-metrics-box">
-            <h2 class="scholar-metrics-title">' . __('Citations', 'scholar-profile') . '</h2>
-            <table class="scholar-metrics-table">
-                <thead>
-                    <tr>
-                        <th></th>
-                        <th>' . __('All', 'scholar-profile') . '</th>
-                        <th>' . __('Since 2019', 'scholar-profile') . '</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>' . __('Citations', 'scholar-profile') . '</td>
-                        <td>' . number_format($data['citations']['total']) . '</td>
-                        <td>' . number_format($data['citations']['since_2019']) . '</td>
-                    </tr>
-                    <tr>
-                        <td>h-index</td>
-                        <td>' . esc_html($data['citations']['h_index']) . '</td>
-                        <td>' . esc_html($data['citations']['h_index_2019']) . '</td>
-                    </tr>
-                    <tr>
-                        <td>i10-index</td>
-                        <td>' . esc_html($data['citations']['i10_index']) . '</td>
-                        <td>' . esc_html($data['citations']['i10_index_2019']) . '</td>
-                    </tr>
-                </tbody>
-            </table>
+    echo '<div class="scholar-card scholar-metrics">
+            <div class="scholar-card-header">
+                <h2 class="scholar-card-title">' . __('Citations', 'scholar-profile') . '</h2>
+            </div>
+            <div class="scholar-card-content">
+                <table class="scholar-metrics-table">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>' . __('All', 'scholar-profile') . '</th>
+                            <th>' . __('Since 2019', 'scholar-profile') . '</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>' . __('Citations', 'scholar-profile') . '</td>
+                            <td>' . number_format($data['citations']['total']) . '</td>
+                            <td>' . number_format($data['citations']['since_2019']) . '</td>
+                        </tr>
+                        <tr>
+                            <td>h-index</td>
+                            <td>' . esc_html($data['citations']['h_index']) . '</td>
+                            <td>' . esc_html($data['citations']['h_index_2019']) . '</td>
+                        </tr>
+                        <tr>
+                            <td>i10-index</td>
+                            <td>' . esc_html($data['citations']['i10_index']) . '</td>
+                            <td>' . esc_html($data['citations']['i10_index_2019']) . '</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
           </div>';
   }
 
@@ -493,25 +500,32 @@ class Shortcode
       return;
     }
 
-    echo '<div class="scholar-coauthors">
-            <h2 class="scholar-section-title">' . __('Co-authors', 'scholar-profile') . '</h2>';
+    $coauthor_count = count($data['coauthors']);
+
+    echo '<div class="scholar-card scholar-coauthors">
+            <div class="scholar-card-header">
+                <h2 class="scholar-card-title">' . __('Co-authors', 'scholar-profile') . '</h2>
+                <div class="scholar-card-info">' . sprintf(_n('%d co-author', '%d co-authors', $coauthor_count, 'scholar-profile'), $coauthor_count) . '</div>
+            </div>
+            <div class="scholar-card-content">
+                <div class="scholar-coauthor-list">';
 
     foreach ($data['coauthors'] as $coauthor) {
       echo '<div class="scholar-coauthor">
-                <div class="scholar-coauthor-header">';
+                    <div class="scholar-coauthor-header">';
 
       // Avatar with fallback handling
       if (!empty($coauthor['avatar'])) {
         echo '<img src="' . esc_url($coauthor['avatar']) . '" 
-                   alt="' . esc_attr($coauthor['name']) . '" 
-                   class="scholar-coauthor-avatar"
-                   onerror="this.style.display=\'none\'">';
+                       alt="' . esc_attr($coauthor['name']) . '" 
+                       class="scholar-coauthor-avatar"
+                       onerror="this.style.display=\'none\'">';
       }
 
       echo '<div class="scholar-coauthor-main">
-                    <a href="' . esc_url($coauthor['profile_url']) . '" 
-                       class="scholar-coauthor-name"
-                       target="_blank" rel="noopener noreferrer">'
+                        <a href="' . esc_url($coauthor['profile_url']) . '" 
+                           class="scholar-coauthor-name"
+                           target="_blank" rel="noopener noreferrer">'
         . esc_html($coauthor['name']) . '</a>';
 
       if (!empty($coauthor['title'])) {
@@ -522,7 +536,7 @@ class Shortcode
       echo '</div></div></div>';
     }
 
-    echo '</div>';
+    echo '</div></div></div>';
   }
 
   /**
