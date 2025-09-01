@@ -123,10 +123,10 @@ $cooldown_remaining = $can_refresh ? 0 : ceil(($cooldown_period - $time_since_re
                       <?php _e('Daily', 'scholar-profile'); ?>
                     </option>
                     <option value="weekly" <?php selected($options['update_frequency'], 'weekly'); ?>>
-                      <?php _e('Weekly (Recommended)', 'scholar-profile'); ?>
+                      <?php _e('Weekly', 'scholar-profile'); ?>
                     </option>
                     <option value="monthly" <?php selected($options['update_frequency'], 'monthly'); ?>>
-                      <?php _e('Monthly', 'scholar-profile'); ?>
+                      <?php _e('Monthly (Recommended)', 'scholar-profile'); ?>
                     </option>
                     <option value="yearly" <?php selected($options['update_frequency'], 'yearly'); ?>>
                       <?php _e('Yearly', 'scholar-profile'); ?>
