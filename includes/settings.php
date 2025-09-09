@@ -157,10 +157,7 @@ class Settings
 
     // Update status to indicate we're starting a manual refresh
     $scheduler = new Scheduler();
-    $scheduler_reflection = new \ReflectionClass($scheduler);
-    $update_status_method = $scheduler_reflection->getMethod('update_data_status');
-    $update_status_method->setAccessible(true);
-    $update_status_method->invoke($scheduler, 'updating', 'Manual refresh in progress...');
+    $scheduler->update_data_status('updating', 'Manual refresh in progress...');
 
     wp_scholar_log("Starting manual refresh for profile: " . $options['profile_id']);
 
@@ -182,7 +179,7 @@ class Settings
       delete_option('scholar_profile_consecutive_failures');
 
       // Update status to success
-      $update_status_method->invoke($scheduler, 'success', sprintf(
+      $scheduler->update_data_status('success', sprintf(
         'Manual refresh successful at %s - Found %d publications',
         date('Y-m-d H:i:s'),
         count($data['publications'])
@@ -195,7 +192,9 @@ class Settings
         admin_url('options-general.php')
       ));
     } else {
-      // Manual refresh failed
+      // Manual refresh failed - get detailed error information
+      $error_details = $scraper->get_last_error_details();
+
       $consecutive_failures = get_option('scholar_profile_consecutive_failures', 0) + 1;
       update_option('scholar_profile_consecutive_failures', $consecutive_failures);
 
@@ -206,20 +205,34 @@ class Settings
         $last_update = get_option('scholar_profile_last_update', 0);
         $age_days = $last_update ? ceil((time() - $last_update) / DAY_IN_SECONDS) : 'unknown';
 
-        $update_status_method->invoke($scheduler, 'stale', sprintf(
+        $scheduler->update_data_status('stale', sprintf(
           'Manual refresh failed. Keeping existing data from %s days ago.',
           $age_days
         ));
       } else {
-        $update_status_method->invoke($scheduler, 'error', 'Manual refresh failed and no existing data available.');
+        $scheduler->update_data_status('error', 'Manual refresh failed and no existing data available.');
       }
 
       wp_scholar_log("Manual refresh failed for profile: " . $options['profile_id']);
 
-      wp_redirect(add_query_arg(
-        array('page' => $this->page_slug, 'refresh' => 'failed', 'message' => 'scrape_failed'),
-        admin_url('options-general.php')
-      ));
+      // Store detailed error information for display
+      if ($error_details) {
+        update_option('scholar_profile_last_error_details', $error_details);
+      }
+
+      // Redirect with specific error information
+      $redirect_args = array(
+        'page' => $this->page_slug,
+        'refresh' => 'failed',
+        'message' => 'scrape_failed'
+      );
+
+      // Add error type for more specific handling
+      if ($error_details && isset($error_details['type'])) {
+        $redirect_args['error_type'] = $error_details['type'];
+      }
+
+      wp_redirect(add_query_arg($redirect_args, admin_url('options-general.php')));
     }
     exit;
   }
@@ -328,34 +341,13 @@ class Settings
           'message' => __('✓ Profile data refreshed successfully!', 'scholar-profile')
         );
       } elseif ($_GET['refresh'] === 'failed') {
-        $message = __('Failed to refresh profile data. Please try again.', 'scholar-profile');
-
-        if (isset($_GET['message'])) {
-          switch ($_GET['message']) {
-            case 'no_profile_id':
-              $message = __('Please enter a Profile ID before refreshing.', 'scholar-profile');
-              break;
-            case 'scrape_failed':
-              $existing_data = get_option('scholar_profile_data');
-              if (!empty($existing_data)) {
-                $message = __('Could not retrieve new data from Google Scholar, but existing data is preserved. Please check your Profile ID and try again later.', 'scholar-profile');
-              } else {
-                $message = __('Could not retrieve data from Google Scholar. Please check your Profile ID and try again.', 'scholar-profile');
-              }
-              break;
-            case 'rate_limited':
-              $minutes = isset($_GET['minutes']) ? intval($_GET['minutes']) : 5;
-              $message = sprintf(
-                __('Please wait %d more minute(s) before refreshing again. This prevents rate limiting from Google Scholar.', 'scholar-profile'),
-                $minutes
-              );
-              break;
-          }
-        }
+        // Get enhanced error message based on error type
+        $error_message = $this->get_enhanced_error_message($_GET);
 
         $messages[] = array(
           'type' => 'error',
-          'message' => '⚠ ' . $message
+          'message' => '⚠ ' . $error_message,
+          'is_html' => true // Allow HTML in enhanced error messages
         );
       }
     }
@@ -377,6 +369,82 @@ class Settings
     }
 
     include WP_SCHOLAR_PLUGIN_DIR . 'views/settings-page.php';
+  }
+
+  /**
+   * Get enhanced error message based on error type and details
+   */
+  private function get_enhanced_error_message($get_params)
+  {
+    $error_details = get_option('scholar_profile_last_error_details');
+
+    // Handle specific URL parameter messages first
+    if (isset($get_params['message'])) {
+      switch ($get_params['message']) {
+        case 'no_profile_id':
+          return __('Please enter a Profile ID before refreshing.', 'scholar-profile');
+
+        case 'rate_limited':
+          $minutes = isset($get_params['minutes']) ? intval($get_params['minutes']) : 5;
+          return sprintf(
+            __('Please wait %d more minute(s) before refreshing again. This prevents rate limiting from Google Scholar.', 'scholar-profile'),
+            $minutes
+          );
+      }
+    }
+
+    // Use enhanced error details if available
+    if ($error_details && isset($error_details['type'])) {
+      $message = $this->format_detailed_error_message($error_details);
+      if ($message) {
+        return $message;
+      }
+    }
+
+    // Fallback to generic messages
+    $existing_data = get_option('scholar_profile_data');
+    if (!empty($existing_data)) {
+      return __('Could not retrieve new data from Google Scholar, but existing data is preserved. Please check the details below and try again later.', 'scholar-profile');
+    } else {
+      return __('Could not retrieve data from Google Scholar. Please check the details below and try again.', 'scholar-profile');
+    }
+  }
+
+  /**
+   * Format detailed error message with helpful suggestions
+   */
+  private function format_detailed_error_message($error_details)
+  {
+    if (!isset($error_details['user_message'])) {
+      return null;
+    }
+
+    $message = '<strong>' . esc_html($error_details['user_message']) . '</strong>';
+
+    if (isset($error_details['status_code'])) {
+      $message .= sprintf(' <em>(HTTP %d)</em>', $error_details['status_code']);
+    }
+
+    if (!empty($error_details['suggestions']) && is_array($error_details['suggestions'])) {
+      $message .= '<br><br><strong>' . __('What you can try:', 'scholar-profile') . '</strong>';
+      $message .= '<ul style="margin-left: 20px; margin-top: 8px;">';
+      foreach ($error_details['suggestions'] as $suggestion) {
+        $message .= '<li style="margin-bottom: 4px;">' . esc_html($suggestion) . '</li>';
+      }
+      $message .= '</ul>';
+    }
+
+    // Add specific guidance for blocked access (403 errors)
+    if ($error_details['type'] === 'blocked_access') {
+      $message .= '<br><div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 12px; border-radius: 4px; margin-top: 12px;">';
+      $message .= '<strong>🔒 ' . __('Server Access Blocked', 'scholar-profile') . '</strong><br>';
+      $message .= __('This is the most common issue and is usually temporary. Google Scholar blocks server IPs that make too many requests.', 'scholar-profile');
+      $message .= '<br><strong>' . __('Recommended action:', 'scholar-profile') . '</strong> ';
+      $message .= __('Wait 1-2 hours and try again. If the problem persists, contact your hosting provider.', 'scholar-profile');
+      $message .= '</div>';
+    }
+
+    return $message;
   }
 
   public function sanitize_settings($input, $current_settings = array())

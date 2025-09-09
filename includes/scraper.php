@@ -7,6 +7,23 @@ class Scraper
   private $max_publications = 200; // Reasonable limit to prevent excessive requests
   private $page_size = 20; // Google Scholar shows 20 publications per page
   private $request_delay = 1; // Delay between requests in seconds
+  private $last_error_details = null; // Store detailed error information
+
+  /**
+   * Get detailed error information from the last failed request
+   */
+  public function get_last_error_details()
+  {
+    return $this->last_error_details;
+  }
+
+  /**
+   * Clear stored error details
+   */
+  public function clear_error_details()
+  {
+    $this->last_error_details = null;
+  }
 
   private function download_to_media_library($image_url, $profile_id, $title = '')
   {
@@ -381,10 +398,15 @@ class Scraper
   {
     if (empty($profile_id)) {
       wp_scholar_log("Scrape failed: Empty profile ID");
+      $this->last_error_details = array(
+        'type' => 'invalid_input',
+        'message' => 'Empty profile ID provided'
+      );
       return false;
     }
 
     wp_scholar_log("Starting to scrape profile: $profile_id");
+    $this->clear_error_details(); // Clear any previous errors
 
     try {
       // First, get the main profile page to extract basic info
@@ -403,6 +425,10 @@ class Scraper
       return $main_data;
     } catch (Exception $e) {
       wp_scholar_log("Exception during scraping: " . $e->getMessage());
+      $this->last_error_details = array(
+        'type' => 'exception',
+        'message' => $e->getMessage()
+      );
       return false;
     }
   }
@@ -421,13 +447,25 @@ class Scraper
     ));
 
     if (is_wp_error($response)) {
-      wp_scholar_log('Error fetching main profile - ' . $response->get_error_message());
+      $error_message = $response->get_error_message();
+      wp_scholar_log('Error fetching main profile - ' . $error_message);
+
+      // Store detailed error information
+      $this->last_error_details = array(
+        'type' => 'network_error',
+        'message' => $error_message,
+        'url' => $url
+      );
+
       return false;
     }
 
     $status_code = wp_remote_retrieve_response_code($response);
+    wp_scholar_log("Main profile returned HTTP $status_code");
+
+    // Enhanced error handling for different HTTP status codes
     if ($status_code !== 200) {
-      wp_scholar_log("Main profile returned HTTP $status_code");
+      $this->handle_http_error($status_code, $url, $profile_id);
       return false;
     }
 
@@ -435,6 +473,10 @@ class Scraper
 
     if (empty($html)) {
       wp_scholar_log('Empty response from main profile');
+      $this->last_error_details = array(
+        'type' => 'empty_response',
+        'message' => 'Received empty response from Google Scholar'
+      );
       return false;
     }
 
@@ -447,82 +489,104 @@ class Scraper
   }
 
   /**
-   * More sophisticated method to detect if we got a valid Scholar profile
+   * Handle different HTTP error codes with specific error details
    */
-  private function is_valid_scholar_profile($html)
+  private function handle_http_error($status_code, $url, $profile_id)
   {
-    // Log response length for debugging
-    wp_scholar_log("Received HTML response length: " . strlen($html) . " bytes");
+    switch ($status_code) {
+      case 403:
+        wp_scholar_log("HTTP 403 Forbidden - Likely IP blocked or rate limited");
+        $this->last_error_details = array(
+          'type' => 'blocked_access',
+          'status_code' => $status_code,
+          'message' => 'Access forbidden by Google Scholar',
+          'user_message' => 'Google Scholar is currently blocking requests from your server. This usually happens due to rate limiting or IP restrictions.',
+          'suggestions' => array(
+            'Your hosting provider IP may be temporarily blocked by Google Scholar',
+            'Try again in a few hours - blocks are often temporary',
+            'Contact your hosting provider about IP reputation',
+            'Consider using a different hosting provider if this persists'
+          )
+        );
+        break;
 
-    // Check for specific Scholar profile indicators
-    $required_elements = [
-      'gsc_prf', // Profile container
-      'citations', // Citations table
-      'gsc_a_tr' // Publication rows (even if empty)
-    ];
+      case 404:
+        wp_scholar_log("HTTP 404 Not Found - Invalid profile ID or profile doesn't exist");
+        $this->last_error_details = array(
+          'type' => 'profile_not_found',
+          'status_code' => $status_code,
+          'message' => 'Profile not found',
+          'user_message' => 'The Google Scholar profile could not be found.',
+          'suggestions' => array(
+            'Double-check your Profile ID - it should be the part after "user=" in your Scholar URL',
+            'Make sure your Google Scholar profile is set to public',
+            'Verify the profile exists by visiting it directly in your browser'
+          )
+        );
+        break;
 
-    $found_elements = [];
-    foreach ($required_elements as $element) {
-      if (strpos($html, $element) !== false) {
-        $found_elements[] = $element;
-      }
+      case 429:
+        wp_scholar_log("HTTP 429 Too Many Requests - Rate limited");
+        $this->last_error_details = array(
+          'type' => 'rate_limited',
+          'status_code' => $status_code,
+          'message' => 'Rate limited by Google Scholar',
+          'user_message' => 'Google Scholar is rate limiting requests from your server.',
+          'suggestions' => array(
+            'Wait at least 1 hour before trying again',
+            'Reduce the maximum number of publications in settings',
+            'Increase the update frequency to weekly or monthly',
+            'This is usually temporary - try again later'
+          )
+        );
+        break;
+
+      case 503:
+        wp_scholar_log("HTTP 503 Service Unavailable - Google Scholar may be down");
+        $this->last_error_details = array(
+          'type' => 'service_unavailable',
+          'status_code' => $status_code,
+          'message' => 'Google Scholar service unavailable',
+          'user_message' => 'Google Scholar is currently unavailable.',
+          'suggestions' => array(
+            'This is usually temporary - try again in a few minutes',
+            'Check if Google Scholar is accessible in your browser',
+            'Google Scholar may be experiencing maintenance or outages'
+          )
+        );
+        break;
+
+      case 502:
+      case 504:
+        wp_scholar_log("HTTP $status_code Gateway Error - Connection issues");
+        $this->last_error_details = array(
+          'type' => 'gateway_error',
+          'status_code' => $status_code,
+          'message' => 'Gateway error accessing Google Scholar',
+          'user_message' => 'There was a connection problem reaching Google Scholar.',
+          'suggestions' => array(
+            'This is usually temporary - try again in a few minutes',
+            'Your hosting provider may be experiencing network issues',
+            'Check if other websites are working properly from your server'
+          )
+        );
+        break;
+
+      default:
+        wp_scholar_log("HTTP $status_code Unexpected Error");
+        $this->last_error_details = array(
+          'type' => 'http_error',
+          'status_code' => $status_code,
+          'message' => "Unexpected HTTP error: $status_code",
+          'user_message' => "Google Scholar returned an unexpected error (HTTP $status_code).",
+          'suggestions' => array(
+            'Try again in a few minutes',
+            'Check if your Profile ID is correct',
+            'Contact support if this problem persists'
+          )
+        );
+        break;
     }
-
-    wp_scholar_log("Found Scholar elements: " . implode(', ', $found_elements) . " out of " . count($required_elements));
-
-    // Must have at least the profile container
-    if (!in_array('gsc_prf', $found_elements)) {
-      wp_scholar_log("Missing profile container - not a valid Scholar profile");
-
-      // Check for specific error patterns more carefully
-      if ($this->detect_scholar_errors($html)) {
-        return false;
-      }
-
-      // If no clear error but no profile container, likely an issue
-      wp_scholar_log("No profile container found but no clear error detected");
-      return false;
-    }
-
-    return true;
-  }
-
-  /**
-   * Detect specific Scholar error patterns without false positives
-   */
-  private function detect_scholar_errors($html)
-  {
-    // More specific error patterns
-    $error_patterns = [
-      'This profile is not available',
-      'User profiles are not publicly viewable',
-      'The profile you are looking for could not be found',
-      'Citations to this profile are not available',
-      '<title>Error',
-      'class="error"'
-    ];
-
-    foreach ($error_patterns as $pattern) {
-      if (stripos($html, $pattern) !== false) {
-        wp_scholar_log("Detected specific error pattern: $pattern");
-
-        // Log a snippet around the error for context
-        $pos = stripos($html, $pattern);
-        $start = max(0, $pos - 100);
-        $snippet = substr($html, $start, 200);
-        wp_scholar_log("Error context: " . htmlspecialchars($snippet));
-
-        return true;
-      }
-    }
-
-    // Check for redirect to login or blocked page
-    if (strpos($html, 'accounts.google.com') !== false && strpos($html, 'signin') !== false) {
-      wp_scholar_log("Detected redirect to Google login - profile may be private or blocked");
-      return true;
-    }
-
-    return false;
   }
 
   private function scrape_all_publications($profile_id)
@@ -598,6 +662,139 @@ class Scraper
     }
 
     return $this->extract_publications_from_html($html);
+  }
+
+  /**
+   * More sophisticated method to detect if we got a valid Scholar profile
+   */
+  private function is_valid_scholar_profile($html)
+  {
+    // Log response length for debugging
+    wp_scholar_log("Received HTML response length: " . strlen($html) . " bytes");
+
+    // Check for specific Scholar profile indicators
+    $required_elements = [
+      'gsc_prf', // Profile container
+      'citations', // Citations table
+      'gsc_a_tr' // Publication rows (even if empty)
+    ];
+
+    $found_elements = [];
+    foreach ($required_elements as $element) {
+      if (strpos($html, $element) !== false) {
+        $found_elements[] = $element;
+      }
+    }
+
+    wp_scholar_log("Found Scholar elements: " . implode(', ', $found_elements) . " out of " . count($required_elements));
+
+    // Must have at least the profile container
+    if (!in_array('gsc_prf', $found_elements)) {
+      wp_scholar_log("Missing profile container - not a valid Scholar profile");
+
+      // Check for specific error patterns more carefully
+      if ($this->detect_scholar_errors($html)) {
+        return false;
+      }
+
+      // If no clear error but no profile container, likely an issue
+      wp_scholar_log("No profile container found but no clear error detected");
+      $this->last_error_details = array(
+        'type' => 'invalid_page_structure',
+        'message' => 'Page does not appear to be a valid Google Scholar profile',
+        'user_message' => 'The page returned by Google Scholar does not contain expected profile data.',
+        'suggestions' => array(
+          'Verify your Profile ID is correct',
+          'Make sure your Google Scholar profile is public',
+          'Try accessing your profile directly in a browser to confirm it works'
+        )
+      );
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * Detect specific Scholar error patterns without false positives
+   */
+  private function detect_scholar_errors($html)
+  {
+    // More specific error patterns
+    $error_patterns = [
+      'This profile is not available' => array(
+        'type' => 'profile_unavailable',
+        'user_message' => 'This Google Scholar profile is not publicly available.',
+        'suggestions' => array(
+          'Make sure your Google Scholar profile is set to public',
+          'Check your Profile ID is correct',
+          'The profile owner may have restricted access'
+        )
+      ),
+      'User profiles are not publicly viewable' => array(
+        'type' => 'profile_private',
+        'user_message' => 'This Google Scholar profile is set to private.',
+        'suggestions' => array(
+          'The profile owner needs to make their profile public',
+          'Verify you have the correct Profile ID',
+          'Contact the profile owner to make their profile public'
+        )
+      ),
+      'The profile you are looking for could not be found' => array(
+        'type' => 'profile_not_found',
+        'user_message' => 'The Google Scholar profile could not be found.',
+        'suggestions' => array(
+          'Double-check your Profile ID',
+          'Make sure the profile still exists',
+          'Verify the profile is publicly accessible'
+        )
+      ),
+      'Citations to this profile are not available' => array(
+        'type' => 'citations_unavailable',
+        'user_message' => 'Citations for this profile are not available.',
+        'suggestions' => array(
+          'The profile may be too new or have privacy restrictions',
+          'Try again later',
+          'Contact the profile owner about citation visibility'
+        )
+      )
+    ];
+
+    foreach ($error_patterns as $pattern => $error_info) {
+      if (stripos($html, $pattern) !== false) {
+        wp_scholar_log("Detected specific error pattern: $pattern");
+
+        // Log a snippet around the error for context
+        $pos = stripos($html, $pattern);
+        $start = max(0, $pos - 100);
+        $snippet = substr($html, $start, 200);
+        wp_scholar_log("Error context: " . htmlspecialchars($snippet));
+
+        $this->last_error_details = array_merge(array(
+          'message' => $pattern
+        ), $error_info);
+
+        return true;
+      }
+    }
+
+    // Check for redirect to login or blocked page
+    if (strpos($html, 'accounts.google.com') !== false && strpos($html, 'signin') !== false) {
+      wp_scholar_log("Detected redirect to Google login - profile may be private or blocked");
+      $this->last_error_details = array(
+        'type' => 'login_required',
+        'message' => 'Redirected to Google login page',
+        'user_message' => 'Google Scholar is requiring login to access this profile.',
+        'suggestions' => array(
+          'The profile may be set to private or restricted',
+          'Your server IP may be flagged for suspicious activity',
+          'Try again later as this may be temporary'
+        )
+      );
+      return true;
+    }
+
+    return false;
   }
 
   private function parse_main_profile_html($html, $profile_id)

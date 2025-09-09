@@ -30,9 +30,9 @@ class Shortcode
     $is_data_stale = $scheduler->is_data_stale();
 
     if (!$data) {
-      // No data available at all
+      // No data available at all - check for enhanced error details
       if ($data_status['status'] === 'error') {
-        return $this->render_error_message($data_status['message']);
+        return $this->render_enhanced_error_message($data_status['message']);
       } else {
         return $this->render_no_data_message();
       }
@@ -40,7 +40,7 @@ class Shortcode
 
     // Validate that the data is complete
     if (!$this->validate_display_data($data)) {
-      return $this->render_error_message(__('Profile data appears to be incomplete or corrupted.', 'scholar-profile'));
+      return $this->render_enhanced_error_message(__('Profile data appears to be incomplete or corrupted.', 'scholar-profile'));
     }
 
     // Add SEO enhancements
@@ -103,6 +103,77 @@ class Shortcode
     $this->seo_handler->add_structured_data($data, $paged_publications);
 
     return ob_get_clean();
+  }
+
+  /**
+   * Render enhanced error message with detailed information when available
+   */
+  protected function render_enhanced_error_message($message = '')
+  {
+    // Get detailed error information if available
+    $error_details = get_option('scholar_profile_last_error_details');
+
+    $default_message = __('Unable to display profile data. Please contact the site administrator.', 'scholar-profile');
+    $display_message = !empty($message) ? $message : $default_message;
+
+    // Check if we have enhanced error details for better user guidance
+    if ($error_details && isset($error_details['type'])) {
+      $enhanced_message = $this->format_frontend_error_message($error_details);
+      if ($enhanced_message) {
+        $display_message = $enhanced_message;
+      }
+    }
+
+    return sprintf(
+      '<div class="scholar-error-message">
+        <p class="scholar-error">
+          <span class="scholar-error-icon">⚠️</span>
+          %s
+        </p>
+      </div>',
+      wp_kses($display_message, array(
+        'strong' => array(),
+        'em' => array(),
+        'br' => array()
+      ))
+    );
+  }
+
+  /**
+   * Format error message for frontend display (less technical than admin)
+   */
+  private function format_frontend_error_message($error_details)
+  {
+    if (!isset($error_details['user_message'])) {
+      return null;
+    }
+
+    $message = '<strong>' . esc_html($error_details['user_message']) . '</strong>';
+
+    // Add user-friendly suggestions based on error type
+    switch ($error_details['type']) {
+      case 'blocked_access':
+        $message .= '<br><br>' . __('This is usually temporary. The profile should be accessible again within a few hours.', 'scholar-profile');
+        break;
+
+      case 'profile_not_found':
+        $message .= '<br><br>' . __('Please verify the profile ID is correct and the profile is publicly accessible.', 'scholar-profile');
+        break;
+
+      case 'profile_private':
+        $message .= '<br><br>' . __('The profile owner needs to make their Google Scholar profile public for it to be displayed.', 'scholar-profile');
+        break;
+
+      case 'rate_limited':
+        $message .= '<br><br>' . __('This is temporary - the profile should be available again soon.', 'scholar-profile');
+        break;
+
+      case 'service_unavailable':
+        $message .= '<br><br>' . __('Google Scholar is temporarily unavailable. Please try refreshing the page in a few minutes.', 'scholar-profile');
+        break;
+    }
+
+    return $message;
   }
 
   /**

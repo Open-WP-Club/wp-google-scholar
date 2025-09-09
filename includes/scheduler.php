@@ -89,8 +89,9 @@ class Scheduler
         count($data['publications'])
       ));
 
-      // Clear any previous error status
+      // Clear any previous error status and details
       delete_option('scholar_profile_consecutive_failures');
+      delete_option('scholar_profile_last_error_details');
 
       wp_scholar_log(sprintf(
         'Google Scholar Profile updated for ID: %s at %s - Found %d publications',
@@ -99,15 +100,23 @@ class Scheduler
         count($data['publications'])
       ));
     } else {
-      // Scraping failed - handle gracefully
-      $this->handle_scraping_failure($options['profile_id']);
+      // Scraping failed - get detailed error information
+      $error_details = $scraper->get_last_error_details();
+
+      // Store detailed error information for admin reference
+      if ($error_details) {
+        update_option('scholar_profile_last_error_details', $error_details);
+      }
+
+      // Handle gracefully with enhanced error reporting
+      $this->handle_scraping_failure($options['profile_id'], $error_details);
     }
   }
 
   /**
-   * Handle scraping failures with intelligent failsafe
+   * Handle scraping failures with enhanced error information
    */
-  private function handle_scraping_failure($profile_id)
+  private function handle_scraping_failure($profile_id, $error_details = null)
   {
     $consecutive_failures = get_option('scholar_profile_consecutive_failures', 0);
     $consecutive_failures++;
@@ -116,46 +125,59 @@ class Scheduler
     $existing_data = get_option('scholar_profile_data');
     $has_existing_data = !empty($existing_data) && !empty($existing_data['name']);
 
+    // Create enhanced error message based on error details
+    $error_message = 'Failed to fetch data from Google Scholar';
+    if ($error_details && isset($error_details['user_message'])) {
+      $error_message = $error_details['user_message'];
+      if (isset($error_details['status_code'])) {
+        $error_message .= sprintf(' (HTTP %d)', $error_details['status_code']);
+      }
+    }
+
     if ($has_existing_data) {
       // Keep existing data but mark as stale
       $last_update = get_option('scholar_profile_last_update', 0);
       $age_days = $last_update ? ceil((time() - $last_update) / DAY_IN_SECONDS) : 'unknown';
 
-      $error_message = sprintf(
-        'Failed to fetch new data (attempt %d). Keeping existing data from %s days ago.',
+      $status_message = sprintf(
+        '%s (attempt %d). Keeping existing data from %s days ago.',
+        $error_message,
         $consecutive_failures,
         $age_days
       );
 
-      $this->update_data_status('stale', $error_message);
+      $this->update_data_status('stale', $status_message);
 
-      wp_scholar_log("Scheduled update failed for profile: $profile_id - keeping existing data (failure #$consecutive_failures)");
+      wp_scholar_log("Scheduled update failed for profile: $profile_id - keeping existing data (failure #$consecutive_failures) - " . $error_message);
     } else {
       // No existing data to fall back to
-      $this->update_data_status('error', sprintf(
-        'Failed to fetch data (attempt %d). No existing data available.',
+      $status_message = sprintf(
+        '%s (attempt %d). No existing data available.',
+        $error_message,
         $consecutive_failures
-      ));
+      );
 
-      wp_scholar_log("Scheduled update failed for profile: $profile_id - no existing data available (failure #$consecutive_failures)");
+      $this->update_data_status('error', $status_message);
+
+      wp_scholar_log("Scheduled update failed for profile: $profile_id - no existing data available (failure #$consecutive_failures) - " . $error_message);
     }
 
     // If we've had too many consecutive failures, consider more drastic action
     if ($consecutive_failures >= 5) {
-      $this->handle_persistent_failures($profile_id, $consecutive_failures);
+      $this->handle_persistent_failures($profile_id, $consecutive_failures, $error_details);
     }
   }
 
   /**
-   * Handle persistent scraping failures
+   * Handle persistent scraping failures with enhanced reporting
    */
-  private function handle_persistent_failures($profile_id, $failure_count)
+  private function handle_persistent_failures($profile_id, $failure_count, $error_details = null)
   {
     wp_scholar_log("WARNING: $failure_count consecutive failures for profile: $profile_id");
 
-    // Optionally send email notification to admin
+    // Optionally send email notification to admin with enhanced details
     if ($failure_count === 5) {
-      $this->send_failure_notification($profile_id, $failure_count);
+      $this->send_failure_notification($profile_id, $failure_count, $error_details);
     }
 
     // Consider clearing old data if it's very old and we can't update it
@@ -164,41 +186,93 @@ class Scheduler
 
     if ($data_age_days > 90) { // Data older than 90 days
       wp_scholar_log("Considering data too old ($data_age_days days) - marking for manual review");
+
+      $error_summary = 'Data is outdated and cannot be updated';
+      if ($error_details && isset($error_details['type'])) {
+        switch ($error_details['type']) {
+          case 'blocked_access':
+            $error_summary .= ' - server IP appears to be blocked by Google Scholar';
+            break;
+          case 'profile_not_found':
+            $error_summary .= ' - profile may no longer exist or be public';
+            break;
+          case 'rate_limited':
+            $error_summary .= ' - persistent rate limiting from Google Scholar';
+            break;
+          default:
+            $error_summary .= ' - ' . $error_details['message'];
+            break;
+        }
+      }
+
       $this->update_data_status('error', sprintf(
-        'Data is %d days old and cannot be updated after %d attempts. Manual review required.',
-        ceil($data_age_days),
+        '%s after %d attempts. Manual review required.',
+        $error_summary,
         $failure_count
       ));
     }
   }
 
   /**
-   * Send email notification about persistent failures
+   * Send enhanced email notification about persistent failures
    */
-  private function send_failure_notification($profile_id, $failure_count)
+  private function send_failure_notification($profile_id, $failure_count, $error_details = null)
   {
     $admin_email = get_option('admin_email');
     $site_name = get_bloginfo('name');
 
     $subject = sprintf('[%s] Google Scholar Profile Update Failures', $site_name);
 
+    // Build enhanced error message
+    $error_summary = 'Unknown error';
+    $recommendations = 'Check the plugin settings and try a manual refresh.';
+
+    if ($error_details) {
+      $error_summary = $error_details['message'] ?? 'Unknown error';
+
+      if (isset($error_details['status_code'])) {
+        $error_summary .= sprintf(' (HTTP %d)', $error_details['status_code']);
+      }
+
+      // Add specific recommendations based on error type
+      if (isset($error_details['type'])) {
+        switch ($error_details['type']) {
+          case 'blocked_access':
+            $recommendations = "Your server's IP address appears to be blocked by Google Scholar. Contact your hosting provider about IP reputation, or try again in 24-48 hours.";
+            break;
+          case 'profile_not_found':
+            $recommendations = "The Google Scholar profile may have been deleted or made private. Verify the profile still exists and is publicly accessible.";
+            break;
+          case 'rate_limited':
+            $recommendations = "Google Scholar is rate limiting your server. Reduce update frequency to monthly and avoid manual refreshes for a while.";
+            break;
+          case 'profile_private':
+            $recommendations = "The Google Scholar profile appears to be set to private. Contact the profile owner to make it public.";
+            break;
+        }
+      }
+    }
+
     $message = sprintf(
       "The Google Scholar Profile plugin has failed to update data %d consecutive times.\n\n" .
         "Profile ID: %s\n" .
+        "Error: %s\n" .
         "Last successful update: %s\n" .
         "Site: %s\n\n" .
-        "Please check the plugin settings and Google Scholar profile availability.\n" .
+        "Recommendations:\n%s\n\n" .
         "Admin URL: %s",
       $failure_count,
       $profile_id,
+      $error_summary,
       get_option('scholar_profile_last_update') ?
         date('Y-m-d H:i:s', get_option('scholar_profile_last_update')) : 'Never',
       home_url(),
+      $recommendations,
       admin_url('options-general.php?page=scholar-profile-settings')
     );
 
     wp_mail($admin_email, $subject, $message);
-    wp_scholar_log("Failure notification sent to admin: $admin_email");
+    wp_scholar_log("Enhanced failure notification sent to admin: $admin_email - Error type: " . ($error_details['type'] ?? 'unknown'));
   }
 
   /**
@@ -244,7 +318,7 @@ class Scheduler
   /**
    * Update data status for tracking
    */
-  private function update_data_status($status, $message = '')
+  public function update_data_status($status, $message = '')
   {
     $status_data = array(
       'status' => $status, // 'success', 'stale', 'error', 'updating'

@@ -39,7 +39,24 @@ $cooldown_remaining = $can_refresh ? 0 : ceil(($cooldown_period - $time_since_re
   <?php if (!empty($messages)): ?>
     <?php foreach ($messages as $message): ?>
       <div class="notice notice-<?php echo esc_attr($message['type']); ?> is-dismissible">
-        <p><?php echo esc_html($message['message']); ?></p>
+        <p>
+          <?php
+          // Check if message contains HTML and should not be escaped
+          if (isset($message['is_html']) && $message['is_html']) {
+            echo wp_kses($message['message'], array(
+              'strong' => array(),
+              'em' => array(),
+              'br' => array(),
+              'ul' => array('style' => array()),
+              'li' => array('style' => array()),
+              'div' => array('style' => array()),
+              'span' => array('style' => array())
+            ));
+          } else {
+            echo esc_html($message['message']);
+          }
+          ?>
+        </p>
       </div>
     <?php endforeach; ?>
   <?php endif; ?>
@@ -363,24 +380,37 @@ $cooldown_remaining = $can_refresh ? 0 : ceil(($cooldown_period - $time_since_re
           </div>
         </div>
 
-        <!-- Rate Limiting Notice -->
+        <!-- Enhanced Rate Limiting Notice -->
         <div class="scholar-notice-card">
           <h3 style="color: #d63638; display: flex; align-items: center; gap: 8px;">
             <span class="dashicons dashicons-warning" style="font-size: 16px;"></span>
-            <?php _e('Important Notice', 'scholar-profile'); ?>
+            <?php _e('Common Issues & Solutions', 'scholar-profile'); ?>
           </h3>
-          <p>
-            <strong><?php _e('Google Scholar Rate Limiting:', 'scholar-profile'); ?></strong>
-            <?php _e('Google Scholar may temporarily block your IP address if you request too much data too frequently.', 'scholar-profile'); ?>
-          </p>
-          <ul class="scholar-notice-list">
-            <li><?php _e('Fetching 500+ publications increases risk', 'scholar-profile'); ?></li>
-            <li><?php _e('Manual refreshes are limited to once every 5 minutes', 'scholar-profile'); ?></li>
-            <li><?php _e('Use weekly+ updates for large profiles', 'scholar-profile'); ?></li>
-          </ul>
-          <p class="scholar-notice-recommendation">
+
+          <!-- HTTP 403 Blocked Access -->
+          <div class="scholar-troubleshooting-section">
+            <h4 style="margin: 16px 0 8px 0; font-size: 14px;">🔒 <?php _e('Server Access Blocked (HTTP 403)', 'scholar-profile'); ?></h4>
+            <p style="margin: 4px 0; font-size: 13px; color: #666;"><?php _e('Most common issue. Google Scholar temporarily blocks server IPs.', 'scholar-profile'); ?></p>
+            <ul class="scholar-notice-list" style="margin: 8px 0 16px 16px; font-size: 13px;">
+              <li><?php _e('Wait 1-2 hours and try again', 'scholar-profile'); ?></li>
+              <li><?php _e('Contact your hosting provider if it persists', 'scholar-profile'); ?></li>
+              <li><?php _e('Use monthly updates instead of daily/weekly', 'scholar-profile'); ?></li>
+            </ul>
+          </div>
+
+          <!-- Profile Issues -->
+          <div class="scholar-troubleshooting-section">
+            <h4 style="margin: 16px 0 8px 0; font-size: 14px;">👤 <?php _e('Profile Not Found (HTTP 404)', 'scholar-profile'); ?></h4>
+            <ul class="scholar-notice-list" style="margin: 8px 0 16px 16px; font-size: 13px;">
+              <li><?php _e('Double-check your Profile ID format', 'scholar-profile'); ?></li>
+              <li><?php _e('Make sure your profile is set to public', 'scholar-profile'); ?></li>
+              <li><?php _e('Test the profile URL in your browser first', 'scholar-profile'); ?></li>
+            </ul>
+          </div>
+
+          <p class="scholar-notice-recommendation" style="margin-top: 16px;">
             <strong><?php _e('💡 Best Practice:', 'scholar-profile'); ?></strong>
-            <?php _e('Set up automatic updates and avoid frequent manual refreshes.', 'scholar-profile'); ?>
+            <?php _e('Set up automatic monthly updates and avoid frequent manual refreshes to prevent IP blocks.', 'scholar-profile'); ?>
           </p>
         </div>
 
