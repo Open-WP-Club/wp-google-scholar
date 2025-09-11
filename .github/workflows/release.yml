@@ -1,0 +1,105 @@
+name: Build and Attach Plugin Zip
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Get release info
+      id: info
+      run: |
+        echo "tag_name=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+        echo "repo_name=${{ github.event.repository.name }}" >> $GITHUB_OUTPUT
+        echo "release_id=${{ github.event.release.id }}" >> $GITHUB_OUTPUT
+        echo "upload_url=${{ github.event.release.upload_url }}" >> $GITHUB_OUTPUT
+        
+    - name: Create plugin directory
+      run: |
+        mkdir -p build
+        mkdir -p build/${{ steps.info.outputs.repo_name }}
+        
+    - name: Copy plugin files
+      run: |
+        # Copy all files except those we want to exclude
+        rsync -av --progress . build/${{ steps.info.outputs.repo_name }}/ \
+          --exclude='.git*' \
+          --exclude='node_modules' \
+          --exclude='build' \
+          --exclude='.github' \
+          --exclude='*.md' \
+          --exclude='composer.json' \
+          --exclude='composer.lock' \
+          --exclude='package.json' \
+          --exclude='package-lock.json' \
+          --exclude='yarn.lock' \
+          --exclude='.DS_Store' \
+          --exclude='Thumbs.db' \
+          --exclude='.env*' \
+          --exclude='*.log' \
+          --exclude='tests' \
+          --exclude='phpunit.xml*' \
+          --exclude='.phpcs.xml*' \
+          --exclude='webpack.config.js' \
+          --exclude='gulpfile.js' \
+          --exclude='src' \
+          --exclude='assets/src' \
+          --exclude='docker-compose.yml' \
+          --exclude='Dockerfile' \
+          --exclude='.vscode' \
+          --exclude='.idea'
+          
+    - name: Create zip file
+      run: |
+        cd build
+        zip -r "../${{ steps.info.outputs.repo_name }}.zip" ${{ steps.info.outputs.repo_name }}/
+        
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.info.outputs.upload_url }}
+        asset_path: ./${{ steps.info.outputs.repo_name }}.zip
+        asset_name: ${{ steps.info.outputs.repo_name }}.zip
+        asset_content_type: application/zip
+        
+    - name: Update release with build info
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const { owner, repo } = context.repo;
+          const release_id = ${{ steps.info.outputs.release_id }};
+          
+          // Get current release
+          const { data: release } = await github.rest.repos.getRelease({
+            owner,
+            repo,
+            release_id
+          });
+          
+          // Append build info to release body
+          const buildInfo = `
+          
+          ---
+          
+          ### 📦 Plugin Download
+          - **WordPress Plugin**: [\`${{ steps.info.outputs.repo_name }}.zip\`](https://github.com/${owner}/${repo}/releases/download/${{ steps.info.outputs.tag_name }}/${{ steps.info.outputs.repo_name }}.zip)
+          - **Installation**: Download and upload through WordPress Admin → Plugins → Add New → Upload Plugin
+          
+          *Built automatically from tag ${{ steps.info.outputs.tag_name }}*`;
+          
+          // Update release with build info
+          await github.rest.repos.updateRelease({
+            owner,
+            repo,
+            release_id,
+            body: release.body + buildInfo
+          });
