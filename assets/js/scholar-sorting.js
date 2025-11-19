@@ -242,6 +242,9 @@
 
   /**
    * Sort the current page publications
+   * Matches Google Scholar behavior with secondary sorting:
+   * - Sort by year → secondary sort by citations
+   * - Sort by citations → secondary sort by year
    */
   function sortCurrentPage(table, sortBy, order) {
       const tbody = table.querySelector('.publications-tbody');
@@ -257,15 +260,28 @@
               valueB = valueB.toLowerCase();
           }
 
-          if (valueA === valueB) {
-              return 0;
+          // Compare primary field
+          let comparison = 0;
+          if (valueA !== valueB) {
+              if (order === 'asc') {
+                  comparison = valueA < valueB ? -1 : 1;
+              } else {
+                  comparison = valueA > valueB ? -1 : 1;
+              }
           }
 
-          if (order === 'asc') {
-              return valueA < valueB ? -1 : 1;
-          } else {
-              return valueA > valueB ? -1 : 1;
+          // If primary fields are equal, apply secondary sort (matching Google Scholar)
+          if (comparison === 0) {
+              if (sortBy === 'year') {
+                  // When sorting by year, secondary sort by citations (descending)
+                  comparison = b.citations - a.citations;
+              } else if (sortBy === 'citations') {
+                  // When sorting by citations, secondary sort by year (descending)
+                  comparison = b.year - a.year;
+              }
           }
+
+          return comparison;
       });
 
       // Clear current tbody
@@ -275,7 +291,7 @@
       sortedPublications.forEach(pub => {
           tbody.appendChild(pub.element.cloneNode(true));
       });
-      
+
       // Add visual feedback
       addSortFeedback(table);
   }
