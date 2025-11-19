@@ -612,6 +612,9 @@ class Shortcode
 
   /**
    * Sort publications by specified field and order
+   * Matches Google Scholar behavior with secondary sorting:
+   * - Sort by year → secondary sort by citations
+   * - Sort by citations → secondary sort by year
    */
   protected function sort_publications($publications, $sort_by, $sort_order = 'desc')
   {
@@ -627,6 +630,7 @@ class Shortcode
     $sort_order = strtolower($sort_order) === 'asc' ? 'asc' : 'desc';
 
     usort($publications, function ($a, $b) use ($sort_by, $sort_order) {
+      // Primary sort field
       $value_a = $a[$sort_by] ?? '';
       $value_b = $b[$sort_by] ?? '';
 
@@ -645,15 +649,32 @@ class Shortcode
           break;
       }
 
-      if ($value_a == $value_b) {
-        return 0;
+      // Compare primary field
+      $comparison = 0;
+      if ($value_a != $value_b) {
+        if ($sort_order === 'asc') {
+          $comparison = ($value_a < $value_b) ? -1 : 1;
+        } else {
+          $comparison = ($value_a > $value_b) ? -1 : 1;
+        }
       }
 
-      if ($sort_order === 'asc') {
-        return ($value_a < $value_b) ? -1 : 1;
-      } else {
-        return ($value_a > $value_b) ? -1 : 1;
+      // If primary fields are equal, apply secondary sort (matching Google Scholar)
+      if ($comparison === 0) {
+        if ($sort_by === 'year') {
+          // When sorting by year, secondary sort by citations (descending)
+          $citations_a = intval($a['citations'] ?? 0);
+          $citations_b = intval($b['citations'] ?? 0);
+          $comparison = $citations_b - $citations_a; // Always descending for citations
+        } elseif ($sort_by === 'citations') {
+          // When sorting by citations, secondary sort by year (descending)
+          $year_a = intval($a['year'] ?? 0);
+          $year_b = intval($b['year'] ?? 0);
+          $comparison = $year_b - $year_a; // Always descending for year
+        }
       }
+
+      return $comparison;
     });
 
     return $publications;
