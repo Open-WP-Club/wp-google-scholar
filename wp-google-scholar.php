@@ -221,10 +221,45 @@ function wp_scholar_uninstall()
   }
 }
 
-// Enhanced debug logging function
+/**
+ * Enhanced logging function with configurable logging levels
+ *
+ * @param string|array $message Message to log (string or array/object)
+ * @param string $level Log level: 'debug', 'info', 'warning', 'error'
+ * @return void
+ */
 function wp_scholar_log($message, $level = 'info')
 {
-  if (WP_DEBUG === true && WP_DEBUG_LOG === true) {
+  // Only log if WP_DEBUG_LOG is enabled
+  if (WP_DEBUG_LOG !== true) {
+    return;
+  }
+
+  // Define logging level priorities
+  $levels = array(
+    'debug' => 0,
+    'info' => 1,
+    'warning' => 2,
+    'error' => 3
+  );
+
+  // Get minimum logging level from options (defaults to 'info')
+  // Can be set via: update_option('scholar_profile_log_level', 'debug');
+  $min_level = get_option('scholar_profile_log_level', 'info');
+
+  // If WP_DEBUG is true, log everything (debug level)
+  if (WP_DEBUG === true) {
+    $min_level = 'debug';
+  }
+
+  // Validate levels
+  if (!isset($levels[$level]) || !isset($levels[$min_level])) {
+    $level = 'info';
+    $min_level = 'info';
+  }
+
+  // Only log if message level >= minimum level
+  if ($levels[$level] >= $levels[$min_level]) {
     $timestamp = current_time('Y-m-d H:i:s');
     $formatted_message = sprintf(
       '[%s] [Google Scholar Profile] [%s] %s',

@@ -440,7 +440,7 @@ class Scraper
       // First, get the main profile page to extract basic info
       $main_data = $this->scrape_main_profile($profile_id);
       if (!$main_data) {
-        wp_scholar_log("Failed to scrape main profile data for: $profile_id");
+        wp_scholar_log("Failed to scrape main profile data for: $profile_id", 'error');
         return false;
       }
 
@@ -476,7 +476,7 @@ class Scraper
 
     if (is_wp_error($response)) {
       $error_message = $response->get_error_message();
-      wp_scholar_log('Error fetching main profile - ' . $error_message);
+      wp_scholar_log('Error fetching main profile - ' . $error_message, 'error');
 
       // Store detailed error information
       $this->last_error_details = array(
@@ -672,7 +672,7 @@ class Scraper
     ));
 
     if (is_wp_error($response)) {
-      wp_scholar_log('Error fetching publications page - ' . $response->get_error_message());
+      wp_scholar_log('Error fetching publications page - ' . $response->get_error_message(), 'error');
       return array();
     }
 
@@ -856,7 +856,7 @@ class Scraper
 
     // Validate that we extracted meaningful data
     if (empty($data['name'])) {
-      wp_scholar_log("Failed to extract profile name - page may have changed structure");
+      wp_scholar_log("Failed to extract profile name - page may have changed structure", 'warning');
 
       // Log more info about the page structure for debugging
       $name_elements = $xpath->query("//div[@id='gsc_prf_in']");

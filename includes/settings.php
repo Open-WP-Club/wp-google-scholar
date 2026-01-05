@@ -223,7 +223,7 @@ class Settings
         $scheduler->update_data_status('error', 'Manual refresh failed and no existing data available.');
       }
 
-      wp_scholar_log("Manual refresh failed for profile: " . $options['profile_id']);
+      wp_scholar_log("Manual refresh failed for profile: " . $options['profile_id'], 'error');
 
       // Store detailed error information for display
       if ($error_details) {
@@ -277,7 +277,7 @@ class Settings
   private function validate_scraped_data($data)
   {
     if (!is_array($data)) {
-      wp_scholar_log("Data validation failed: not an array");
+      wp_scholar_log("Data validation failed: not an array", 'error');
       return false;
     }
 

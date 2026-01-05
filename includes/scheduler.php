@@ -206,7 +206,7 @@ class Scheduler
 
       $this->update_data_status('stale', $status_message);
 
-      wp_scholar_log("Scheduled update failed for profile: $profile_id - keeping existing data (failure #$consecutive_failures) - " . $error_message);
+      wp_scholar_log("Scheduled update failed for profile: $profile_id - keeping existing data (failure #$consecutive_failures) - " . $error_message, 'warning');
     } else {
       // No existing data to fall back to
       $status_message = sprintf(
@@ -217,7 +217,7 @@ class Scheduler
 
       $this->update_data_status('error', $status_message);
 
-      wp_scholar_log("Scheduled update failed for profile: $profile_id - no existing data available (failure #$consecutive_failures) - " . $error_message);
+      wp_scholar_log("Scheduled update failed for profile: $profile_id - no existing data available (failure #$consecutive_failures) - " . $error_message, 'error');
     }
 
     // If we've had too many consecutive failures, consider more drastic action
@@ -231,7 +231,7 @@ class Scheduler
    */
   private function handle_persistent_failures($profile_id, $failure_count, $error_details = null)
   {
-    wp_scholar_log("WARNING: $failure_count consecutive failures for profile: $profile_id");
+    wp_scholar_log("$failure_count consecutive failures for profile: $profile_id", 'warning');
 
     // Optionally send email notification to admin with enhanced details
     if ($failure_count === 5) {
