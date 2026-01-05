@@ -40,7 +40,7 @@ class Shortcode
 
     // Validate that the data is complete
     if (!$this->validate_display_data($data)) {
-      return $this->render_enhanced_error_message(__('Profile data appears to be incomplete or corrupted.', 'scholar-profile'));
+      return $this->render_enhanced_error_message(__('Profile data appears to be incomplete or corrupted.', 'wp-google-scholar'));
     }
 
     // Add SEO enhancements
@@ -113,7 +113,7 @@ class Shortcode
     // Get detailed error information if available
     $error_details = get_option('scholar_profile_last_error_details');
 
-    $default_message = __('Unable to display profile data. Please contact the site administrator.', 'scholar-profile');
+    $default_message = __('Unable to display profile data. Please contact the site administrator.', 'wp-google-scholar');
     $display_message = !empty($message) ? $message : $default_message;
 
     // Check if we have enhanced error details for better user guidance
@@ -153,23 +153,23 @@ class Shortcode
     // Add user-friendly suggestions based on error type
     switch ($error_details['type']) {
       case 'blocked_access':
-        $message .= '<br><br>' . __('This is usually temporary. The profile should be accessible again within a few hours.', 'scholar-profile');
+        $message .= '<br><br>' . __('This is usually temporary. The profile should be accessible again within a few hours.', 'wp-google-scholar');
         break;
 
       case 'profile_not_found':
-        $message .= '<br><br>' . __('Please verify the profile ID is correct and the profile is publicly accessible.', 'scholar-profile');
+        $message .= '<br><br>' . __('Please verify the profile ID is correct and the profile is publicly accessible.', 'wp-google-scholar');
         break;
 
       case 'profile_private':
-        $message .= '<br><br>' . __('The profile owner needs to make their Google Scholar profile public for it to be displayed.', 'scholar-profile');
+        $message .= '<br><br>' . __('The profile owner needs to make their Google Scholar profile public for it to be displayed.', 'wp-google-scholar');
         break;
 
       case 'rate_limited':
-        $message .= '<br><br>' . __('This is temporary - the profile should be available again soon.', 'scholar-profile');
+        $message .= '<br><br>' . __('This is temporary - the profile should be available again soon.', 'wp-google-scholar');
         break;
 
       case 'service_unavailable':
-        $message .= '<br><br>' . __('Google Scholar is temporarily unavailable. Please try refreshing the page in a few minutes.', 'scholar-profile');
+        $message .= '<br><br>' . __('Google Scholar is temporarily unavailable. Please try refreshing the page in a few minutes.', 'wp-google-scholar');
         break;
     }
 
@@ -181,7 +181,7 @@ class Shortcode
    */
   protected function render_error_message($message = '')
   {
-    $default_message = __('Unable to display profile data. Please contact the site administrator.', 'scholar-profile');
+    $default_message = __('Unable to display profile data. Please contact the site administrator.', 'wp-google-scholar');
     $display_message = !empty($message) ? $message : $default_message;
 
     return sprintf(
@@ -203,7 +203,7 @@ class Shortcode
     return '<div class="scholar-no-data-message">
       <p class="scholar-info">
         <span class="scholar-info-icon">📚</span>
-        ' . __('Google Scholar profile data is not yet available. Please check back later.', 'scholar-profile') . '
+        ' . __('Google Scholar profile data is not yet available. Please check back later.', 'wp-google-scholar') . '
       </p>
     </div>';
   }
@@ -219,31 +219,36 @@ class Shortcode
     if ($last_update) {
       $age_days = ceil((time() - $last_update) / DAY_IN_SECONDS);
       if ($age_days == 1) {
-        $age_text = __('1 day ago', 'scholar-profile');
+        $age_text = __('1 day ago', 'wp-google-scholar');
       } elseif ($age_days < 30) {
-        $age_text = sprintf(__('%d days ago', 'scholar-profile'), $age_days);
+        // translators: %d is the number of days
+        $age_text = sprintf(__('%d days ago', 'wp-google-scholar'), $age_days);
       } elseif ($age_days < 365) {
-        $age_text = sprintf(__('%d months ago', 'scholar-profile'), ceil($age_days / 30));
+        // translators: %d is the number of months
+        $age_text = sprintf(__('%d months ago', 'wp-google-scholar'), ceil($age_days / 30));
       } else {
-        $age_text = sprintf(__('%d years ago', 'scholar-profile'), ceil($age_days / 365));
+        // translators: %d is the number of years
+        $age_text = sprintf(__('%d years ago', 'wp-google-scholar'), ceil($age_days / 365));
       }
     }
 
     echo '<div class="scholar-stale-warning">
       <p class="scholar-warning">
         <span class="scholar-warning-icon">⚠️</span>
-        <strong>' . __('Data Update Notice:', 'scholar-profile') . '</strong> ';
+        <strong>' . __('Data Update Notice:', 'wp-google-scholar') . '</strong> ';
 
     if ($data_status['status'] === 'stale') {
-      echo __('This profile data may be outdated', 'scholar-profile');
+      echo __('This profile data may be outdated', 'wp-google-scholar');
       if ($age_text) {
-        echo ' (' . sprintf(__('last updated %s', 'scholar-profile'), $age_text) . ')';
+        // translators: %s is when the data was last updated (e.g., "3 days ago")
+        echo ' (' . sprintf(__('last updated %s', 'wp-google-scholar'), $age_text) . ')';
       }
-      echo '. ' . __('Automatic updates are currently experiencing issues.', 'scholar-profile');
+      echo '. ' . __('Automatic updates are currently experiencing issues.', 'wp-google-scholar');
     } elseif ($data_status['status'] === 'error') {
-      echo __('Unable to update this profile data.', 'scholar-profile');
+      echo __('Unable to update this profile data.', 'wp-google-scholar');
       if ($age_text) {
-        echo ' ' . sprintf(__('Showing data from %s.', 'scholar-profile'), $age_text);
+        // translators: %s is when the data is from (e.g., "3 days ago")
+        echo ' ' . sprintf(__('Showing data from %s.', 'wp-google-scholar'), $age_text);
       }
     }
 
@@ -309,7 +314,7 @@ class Shortcode
     // Research interests with links
     if (!empty($data['interests'])) {
       echo '<div class="scholar-profile-interests">
-                  <h3>' . __('Research Interests', 'scholar-profile') . '</h3>
+                  <h3>' . __('Research Interests', 'wp-google-scholar') . '</h3>
                   <div class="scholar-fields">';
       foreach ($data['interests'] as $interest) {
         if (is_array($interest) && !empty($interest['url'])) {
@@ -335,10 +340,10 @@ class Shortcode
     if (empty($data['publications'])) {
       echo '<div class="scholar-card scholar-publications">
               <div class="scholar-card-header">
-                  <h2 class="scholar-card-title">' . __('Publications', 'scholar-profile') . '</h2>
+                  <h2 class="scholar-card-title">' . __('Publications', 'wp-google-scholar') . '</h2>
               </div>
               <div class="scholar-card-content">
-                  <p class="scholar-no-publications">' . __('No publications found.', 'scholar-profile') . '</p>
+                  <p class="scholar-no-publications">' . __('No publications found.', 'wp-google-scholar') . '</p>
               </div>
             </div>';
       return;
@@ -350,21 +355,23 @@ class Shortcode
 
     echo '<div class="scholar-card scholar-publications">
             <div class="scholar-card-header">
-                <h2 class="scholar-card-title">' . __('Publications', 'scholar-profile') . '</h2>';
+                <h2 class="scholar-card-title">' . __('Publications', 'wp-google-scholar') . '</h2>';
 
     // Show publication count and pagination info
     if ($total_pages > 1) {
+      // translators: %1$d is start index, %2$d is end index, %3$d is total publications
       echo '<div class="scholar-card-info">' .
         sprintf(
-          __('Showing %d-%d of %d publications', 'scholar-profile'),
+          __('Showing %1$d-%2$d of %3$d publications', 'wp-google-scholar'),
           $start_index,
           $end_index,
           $total_publications
         ) . '</div>';
     } else {
+      // translators: %d is the number of publications
       echo '<div class="scholar-card-info">' .
         sprintf(
-          _n('%d publication', '%d publications', $total_publications, 'scholar-profile'),
+          _n('%d publication', '%d publications', $total_publications, 'wp-google-scholar'),
           $total_publications
         ) . '</div>';
     }
@@ -375,16 +382,16 @@ class Shortcode
     echo '<table class="scholar-publications-table" data-sortable="true">
                 <thead>
                     <tr>
-                        <th class="publication-title sortable" data-sort="title" tabindex="0" role="button" aria-label="' . __('Sort by title', 'scholar-profile') . '">
-                            <span class="sort-label">' . __('Title', 'scholar-profile') . '</span>
+                        <th class="publication-title sortable" data-sort="title" tabindex="0" role="button" aria-label="' . __('Sort by title', 'wp-google-scholar') . '">
+                            <span class="sort-label">' . __('Title', 'wp-google-scholar') . '</span>
                             <span class="sort-arrow" aria-hidden="true"></span>
                         </th>
-                        <th class="publication-year sortable" data-sort="year" tabindex="0" role="button" aria-label="' . __('Sort by year', 'scholar-profile') . '">
-                            <span class="sort-label">' . __('Year', 'scholar-profile') . '</span>
+                        <th class="publication-year sortable" data-sort="year" tabindex="0" role="button" aria-label="' . __('Sort by year', 'wp-google-scholar') . '">
+                            <span class="sort-label">' . __('Year', 'wp-google-scholar') . '</span>
                             <span class="sort-arrow" aria-hidden="true"></span>
                         </th>
-                        <th class="publication-citations sortable" data-sort="citations" tabindex="0" role="button" aria-label="' . __('Sort by citations', 'scholar-profile') . '">
-                            <span class="sort-label">' . __('Cited by', 'scholar-profile') . '</span>
+                        <th class="publication-citations sortable" data-sort="citations" tabindex="0" role="button" aria-label="' . __('Sort by citations', 'wp-google-scholar') . '">
+                            <span class="sort-label">' . __('Cited by', 'wp-google-scholar') . '</span>
                             <span class="sort-arrow" aria-hidden="true"></span>
                         </th>
                     </tr>
@@ -438,21 +445,21 @@ class Shortcode
     $base_url = esc_url_raw(strtok($_SERVER['REQUEST_URI'], '?'));
     $query_params = array_map('sanitize_text_field', $_GET);
 
-    echo '<nav class="scholar-pagination" role="navigation" aria-label="' . __('Publications pagination', 'scholar-profile') . '">
+    echo '<nav class="scholar-pagination" role="navigation" aria-label="' . __('Publications pagination', 'wp-google-scholar') . '">
             <div class="scholar-pagination-wrapper">';
 
     // Previous button
     if ($current_page > 1) {
       $query_params['scholar_page'] = $current_page - 1;
       $prev_url = $base_url . '?' . http_build_query($query_params);
-      echo '<a href="' . esc_url($prev_url) . '" class="scholar-pagination-btn scholar-pagination-prev" aria-label="' . __('Previous page', 'scholar-profile') . '">
+      echo '<a href="' . esc_url($prev_url) . '" class="scholar-pagination-btn scholar-pagination-prev" aria-label="' . __('Previous page', 'wp-google-scholar') . '">
                 <span aria-hidden="true">‹</span>
-                <span class="scholar-pagination-text">' . __('Previous', 'scholar-profile') . '</span>
+                <span class="scholar-pagination-text">' . __('Previous', 'wp-google-scholar') . '</span>
             </a>';
     } else {
       echo '<span class="scholar-pagination-btn scholar-pagination-prev disabled" aria-hidden="true">
                 <span aria-hidden="true">‹</span>
-                <span class="scholar-pagination-text">' . __('Previous', 'scholar-profile') . '</span>
+                <span class="scholar-pagination-text">' . __('Previous', 'wp-google-scholar') . '</span>
             </span>';
     }
 
@@ -466,7 +473,7 @@ class Shortcode
     if ($start_page > 1) {
       $query_params['scholar_page'] = 1;
       $first_url = $base_url . '?' . http_build_query($query_params);
-      echo '<a href="' . esc_url($first_url) . '" class="scholar-pagination-number" aria-label="' . __('Go to page 1', 'scholar-profile') . '">1</a>';
+      echo '<a href="' . esc_url($first_url) . '" class="scholar-pagination-number" aria-label="' . __('Go to page 1', 'wp-google-scholar') . '">1</a>';
 
       if ($start_page > 2) {
         echo '<span class="scholar-pagination-ellipsis" aria-hidden="true">…</span>';
@@ -476,11 +483,13 @@ class Shortcode
     // Page numbers around current page
     for ($page = $start_page; $page <= $end_page; $page++) {
       if ($page == $current_page) {
-        echo '<span class="scholar-pagination-number current" aria-current="page" aria-label="' . sprintf(__('Page %d, current page', 'scholar-profile'), $page) . '">' . $page . '</span>';
+        // translators: %d is the page number
+        echo '<span class="scholar-pagination-number current" aria-current="page" aria-label="' . sprintf(__('Page %d, current page', 'wp-google-scholar'), $page) . '">' . $page . '</span>';
       } else {
         $query_params['scholar_page'] = $page;
         $page_url = $base_url . '?' . http_build_query($query_params);
-        echo '<a href="' . esc_url($page_url) . '" class="scholar-pagination-number" aria-label="' . sprintf(__('Go to page %d', 'scholar-profile'), $page) . '">' . $page . '</a>';
+        // translators: %d is the page number
+        echo '<a href="' . esc_url($page_url) . '" class="scholar-pagination-number" aria-label="' . sprintf(__('Go to page %d', 'wp-google-scholar'), $page) . '">' . $page . '</a>';
       }
     }
 
@@ -492,7 +501,8 @@ class Shortcode
 
       $query_params['scholar_page'] = $total_pages;
       $last_url = $base_url . '?' . http_build_query($query_params);
-      echo '<a href="' . esc_url($last_url) . '" class="scholar-pagination-number" aria-label="' . sprintf(__('Go to page %d', 'scholar-profile'), $total_pages) . '">' . $total_pages . '</a>';
+      // translators: %d is the last page number
+      echo '<a href="' . esc_url($last_url) . '" class="scholar-pagination-number" aria-label="' . sprintf(__('Go to page %d', 'wp-google-scholar'), $total_pages) . '">' . $total_pages . '</a>';
     }
 
     echo '</div>';
@@ -501,13 +511,13 @@ class Shortcode
     if ($current_page < $total_pages) {
       $query_params['scholar_page'] = $current_page + 1;
       $next_url = $base_url . '?' . http_build_query($query_params);
-      echo '<a href="' . esc_url($next_url) . '" class="scholar-pagination-btn scholar-pagination-next" aria-label="' . __('Next page', 'scholar-profile') . '">
-                <span class="scholar-pagination-text">' . __('Next', 'scholar-profile') . '</span>
+      echo '<a href="' . esc_url($next_url) . '" class="scholar-pagination-btn scholar-pagination-next" aria-label="' . __('Next page', 'wp-google-scholar') . '">
+                <span class="scholar-pagination-text">' . __('Next', 'wp-google-scholar') . '</span>
                 <span aria-hidden="true">›</span>
             </a>';
     } else {
       echo '<span class="scholar-pagination-btn scholar-pagination-next disabled" aria-hidden="true">
-                <span class="scholar-pagination-text">' . __('Next', 'scholar-profile') . '</span>
+                <span class="scholar-pagination-text">' . __('Next', 'wp-google-scholar') . '</span>
                 <span aria-hidden="true">›</span>
             </span>';
     }
@@ -532,20 +542,20 @@ class Shortcode
 
     echo '<div class="scholar-card scholar-metrics">
             <div class="scholar-card-header">
-                <h2 class="scholar-card-title">' . __('Citations', 'scholar-profile') . '</h2>
+                <h2 class="scholar-card-title">' . __('Citations', 'wp-google-scholar') . '</h2>
             </div>
             <div class="scholar-card-content">
                 <table class="scholar-metrics-table">
                     <thead>
                         <tr>
                             <th></th>
-                            <th>' . __('All', 'scholar-profile') . '</th>
-                            <th>' . __('Since 2019', 'scholar-profile') . '</th>
+                            <th>' . __('All', 'wp-google-scholar') . '</th>
+                            <th>' . __('Since 2019', 'wp-google-scholar') . '</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td>' . __('Citations', 'scholar-profile') . '</td>
+                            <td>' . __('Citations', 'wp-google-scholar') . '</td>
                             <td>' . number_format($data['citations']['total']) . '</td>
                             <td>' . number_format($data['citations']['since_2019']) . '</td>
                         </tr>
@@ -575,8 +585,9 @@ class Shortcode
 
     echo '<div class="scholar-card scholar-coauthors">
             <div class="scholar-card-header">
-                <h2 class="scholar-card-title">' . __('Co-authors', 'scholar-profile') . '</h2>
-                <div class="scholar-card-info">' . sprintf(_n('%d co-author', '%d co-authors', $coauthor_count, 'scholar-profile'), $coauthor_count) . '</div>
+                <h2 class="scholar-card-title">' . __('Co-authors', 'wp-google-scholar') . '</h2>
+                // translators: %d is the number of co-authors
+                <div class="scholar-card-info">' . sprintf(_n('%d co-author', '%d co-authors', $coauthor_count, 'wp-google-scholar'), $coauthor_count) . '</div>
             </div>
             <div class="scholar-card-content">
                 <div class="scholar-coauthor-list">';

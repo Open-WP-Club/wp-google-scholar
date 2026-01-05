@@ -2,6 +2,10 @@
 
 namespace WPScholar;
 
+if (!defined('ABSPATH')) {
+  exit; // Exit if accessed directly
+}
+
 class Scheduler
 {
   private $hook = 'scholar_profile_update';
@@ -47,19 +51,19 @@ class Scheduler
     $intervals = array(
       'daily' => array(
         'interval' => 86400,
-        'display' => __('Daily', 'scholar-profile')
+        'display' => __('Daily', 'wp-google-scholar')
       ),
       'weekly' => array(
         'interval' => 604800,
-        'display' => __('Weekly', 'scholar-profile')
+        'display' => __('Weekly', 'wp-google-scholar')
       ),
       'monthly' => array(
         'interval' => 2592000,
-        'display' => __('Monthly', 'scholar-profile')
+        'display' => __('Monthly', 'wp-google-scholar')
       ),
       'yearly' => array(
         'interval' => 31536000,
-        'display' => __('Yearly', 'scholar-profile')
+        'display' => __('Yearly', 'wp-google-scholar')
       )
     );
 
@@ -486,6 +490,10 @@ class Scheduler
   /**
    * Force an immediate profile update
    *
+   * Note: This method does not return a value. Check scholar_profile_data_status
+   * option after calling to determine success/failure.
+   *
+   * @since 1.4.0 Changed to void return type (previously had no documented return value)
    * @return void
    */
   public function force_update(): void

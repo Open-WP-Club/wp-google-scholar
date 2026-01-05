@@ -192,8 +192,12 @@ class Scraper
       if ($file_path) {
         require_once(ABSPATH . 'wp-admin/includes/image.php');
         $attachment_metadata = wp_generate_attachment_metadata($attach_id, $file_path);
-        wp_update_attachment_metadata($attach_id, $attachment_metadata);
-        wp_scholar_log("Generated optimized image thumbnails for attachment ID: $attach_id");
+        if (false === $attachment_metadata) {
+          wp_scholar_log("Failed to generate attachment metadata for attachment ID: $attach_id", 'warning');
+        } else {
+          wp_update_attachment_metadata($attach_id, $attachment_metadata);
+          wp_scholar_log("Generated optimized image thumbnails for attachment ID: $attach_id");
+        }
       }
 
       // Add enhanced meta for better caching and tracking

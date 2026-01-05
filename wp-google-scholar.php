@@ -296,28 +296,29 @@ function wp_scholar_admin_notices()
       $error_type = isset($error_details['type']) ? $error_details['type'] : 'unknown';
       $settings_url = admin_url('options-general.php?page=scholar-profile-settings');
 
+      // translators: %d is the number of consecutive failures
       $notice_message = sprintf(
-        __('Google Scholar Profile: %d consecutive update failures detected. ', 'scholar-profile'),
+        __('Google Scholar Profile: %d consecutive update failures detected. ', 'wp-google-scholar'),
         $consecutive_failures
       );
 
       // Add specific guidance based on error type
       switch ($error_type) {
         case 'blocked_access':
-          $notice_message .= __('Your server IP appears to be blocked by Google Scholar.', 'scholar-profile');
+          $notice_message .= __('Your server IP appears to be blocked by Google Scholar.', 'wp-google-scholar');
           break;
         case 'profile_not_found':
-          $notice_message .= __('The configured profile could not be found.', 'scholar-profile');
+          $notice_message .= __('The configured profile could not be found.', 'wp-google-scholar');
           break;
         default:
-          $notice_message .= __('Please check your configuration.', 'scholar-profile');
+          $notice_message .= __('Please check your configuration.', 'wp-google-scholar');
           break;
       }
 
       $notice_message .= sprintf(
         ' <a href="%s">%s</a>',
         esc_url($settings_url),
-        __('View Settings', 'scholar-profile')
+        __('View Settings', 'wp-google-scholar')
       );
 
       echo '<div class="notice notice-warning"><p>' . wp_kses($notice_message, array(
@@ -359,8 +360,8 @@ function wp_scholar_plugin_row_meta($links, $file)
 {
   if (plugin_basename(__FILE__) === $file) {
     $row_meta = array(
-      'docs' => '<a href="https://github.com/Open-WP-Club/wp-google-scholar" target="_blank">' . __('Documentation', 'scholar-profile') . '</a>',
-      'support' => '<a href="https://github.com/Open-WP-Club/wp-google-scholar/issues" target="_blank">' . __('Support', 'scholar-profile') . '</a>',
+      'docs' => '<a href="https://github.com/Open-WP-Club/wp-google-scholar" target="_blank">' . __('Documentation', 'wp-google-scholar') . '</a>',
+      'support' => '<a href="https://github.com/Open-WP-Club/wp-google-scholar/issues" target="_blank">' . __('Support', 'wp-google-scholar') . '</a>',
     );
     return array_merge($links, $row_meta);
   }
