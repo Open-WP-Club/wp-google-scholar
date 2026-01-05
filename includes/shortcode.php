@@ -443,7 +443,7 @@ class Shortcode
   protected function render_pagination($current_page, $total_pages)
   {
     $base_url = esc_url_raw(strtok($_SERVER['REQUEST_URI'], '?'));
-    $query_params = array_map('sanitize_text_field', $_GET);
+    $query_params = isset($_GET) ? map_deep(wp_unslash($_GET), 'sanitize_text_field') : array();
 
     echo '<nav class="scholar-pagination" role="navigation" aria-label="' . __('Publications pagination', 'wp-google-scholar') . '">
             <div class="scholar-pagination-wrapper">';

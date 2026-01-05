@@ -147,8 +147,11 @@ class Scheduler
 
   /**
    * Calculate retry delay based on number of consecutive failures (exponential backoff)
+   *
+   * @param int $failure_count Number of consecutive failures
+   * @return int Delay in seconds before next retry
    */
-  private function calculate_retry_delay($failure_count)
+  private function calculate_retry_delay(int $failure_count): int
   {
     if ($failure_count < self::FAILURE_THRESHOLD_FOR_BACKOFF) {
       return 0; // No delay for first few failures
@@ -159,7 +162,7 @@ class Scheduler
     $delay = self::BASE_RETRY_DELAY * pow(2, $backoff_factor - 1);
 
     // Cap at maximum delay
-    return min($delay, self::MAX_RETRY_DELAY);
+    return (int) min($delay, self::MAX_RETRY_DELAY);
   }
 
   /**
@@ -247,7 +250,7 @@ class Scheduler
     $data_age_days = $last_update ? (time() - $last_update) / DAY_IN_SECONDS : 999;
 
     // Use constant from Settings class for data age threshold
-    if ($data_age_days > \WPScholar\Settings::DATA_STALE_AGE_DAYS) {
+    if ($data_age_days > Settings::DATA_STALE_AGE_DAYS) {
       wp_scholar_log("Considering data too old ($data_age_days days) - marking for manual review");
 
       $error_summary = 'Data is outdated and cannot be updated';

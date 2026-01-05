@@ -230,11 +230,6 @@ function wp_scholar_uninstall()
  */
 function wp_scholar_log($message, $level = 'info')
 {
-  // Only log if WP_DEBUG_LOG is enabled
-  if (WP_DEBUG_LOG !== true) {
-    return;
-  }
-
   // Define logging level priorities
   $levels = array(
     'debug' => 0,
@@ -250,6 +245,11 @@ function wp_scholar_log($message, $level = 'info')
   // If WP_DEBUG is true, log everything (debug level)
   if (WP_DEBUG === true) {
     $min_level = 'debug';
+  }
+
+  // Only log if WP_DEBUG_LOG is enabled
+  if (WP_DEBUG_LOG !== true) {
+    return;
   }
 
   // Validate levels

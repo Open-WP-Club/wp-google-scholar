@@ -156,9 +156,16 @@ class Scraper
       }
 
       // Additional image validation using getimagesize
-      $image_info = getimagesize($file_array['tmp_name']);
+      // Validate that the file exists before checking if it's an image
+      if (!file_exists($file_array['tmp_name'])) {
+        wp_scholar_log('Downloaded file does not exist', 'warning');
+        return '';
+      }
+
+      // Check if it's a valid image (suppress warnings for invalid files)
+      $image_info = @getimagesize($file_array['tmp_name']);
       if ($image_info === false) {
-        wp_scholar_log("Avatar file is not a valid image");
+        wp_scholar_log("Avatar file is not a valid image", 'warning');
         if ($cleanup_temp && file_exists($file_array['tmp_name'])) {
           unlink($file_array['tmp_name']);
         }
@@ -1069,7 +1076,7 @@ class Scraper
    *
    * @param string $profile_id The Google Scholar profile ID
    * @param int $days_old Number of days old for cleanup threshold (default: 30)
-   * @return int Number of images deleted
+   * @return int Number of images successfully deleted (attachments for which deletion fails are not counted)
    */
   public function cleanup_old_images(string $profile_id, int $days_old = 30): int
   {
