@@ -55,7 +55,7 @@ class Shortcode
     }
 
     // Get current page from URL parameter
-    $current_page = max(1, intval($_GET['scholar_page'] ?? 1));
+    $current_page = isset($_GET['scholar_page']) ? max(1, intval(sanitize_text_field($_GET['scholar_page']))) : 1;
     $per_page = max(1, min(100, intval($atts['per_page']))); // Limit between 1-100
 
     // Calculate pagination
@@ -435,8 +435,8 @@ class Shortcode
 
   protected function render_pagination($current_page, $total_pages)
   {
-    $base_url = strtok($_SERVER['REQUEST_URI'], '?');
-    $query_params = $_GET;
+    $base_url = esc_url_raw(strtok($_SERVER['REQUEST_URI'], '?'));
+    $query_params = array_map('sanitize_text_field', $_GET);
 
     echo '<nav class="scholar-pagination" role="navigation" aria-label="' . __('Publications pagination', 'scholar-profile') . '">
             <div class="scholar-pagination-wrapper">';

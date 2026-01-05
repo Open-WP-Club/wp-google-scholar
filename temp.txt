@@ -1,0 +1,43 @@
+# WP Google Scholar Plugin - Improvement Checklist
+
+## High Priority (Security & Critical Bugs)
+
+### 1. Security Issues
+- [x] Remove 'sslverify' => false from scraper.php:333 ✓
+- [x] Add input sanitization for $_GET in shortcode.php:58 ✓
+- [x] Add sanitization for $_SERVER['REQUEST_URI'] in shortcode.php:438 ✓
+- [x] Fix error suppression with @ in scraper.php:145, 804, 852 ✓
+
+## Medium Priority (Performance & UX)
+
+### 2. Performance Optimizations
+- [x] Add image optimization/resizing after upload in scraper.php ✓
+- [x] Implement exponential backoff for retries in scheduler.php ✓
+- [ ] Consider splitting Scraper class into smaller components
+
+### 3. Code Quality
+- [ ] Use WordPress Settings API properly in settings.php
+- [x] Add type hints to all methods (PHP 7.0+) ✓
+- [x] Extract magic numbers to class constants ✓
+- [x] Add PHPDoc comments to all public methods ✓
+
+## Low Priority (Architecture & Maintainability)
+
+### 4. Architecture Improvements
+- [ ] Create interfaces for better testability
+- [ ] Implement dependency injection pattern
+- [ ] Use custom exception classes instead of error arrays
+- [ ] Add consistent error handling (stop mixing false/null/array returns)
+
+### 5. Database & Caching
+- [ ] Consider custom table for publications (if performance becomes issue)
+- [ ] Implement proper rate limiting with backoff
+- [ ] Add HTTP cache header respect
+
+### 6. Testing & Documentation
+- [ ] Add PHPUnit test structure
+- [ ] Implement logging levels (debug, info, warning, error)
+- [ ] Add more inline documentation
+
+---
+Progress: 10/25 items completed (40%)

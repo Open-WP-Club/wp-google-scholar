@@ -6,20 +6,35 @@ class Scheduler
 {
   private $hook = 'scholar_profile_update';
 
+  // Exponential backoff constants
+  private const BASE_RETRY_DELAY = 3600; // 1 hour in seconds
+  private const MAX_RETRY_DELAY = 86400; // 24 hours in seconds
+  private const FAILURE_THRESHOLD_FOR_BACKOFF = 3; // Start backoff after 3 failures
+
   public function __construct()
   {
     add_filter('cron_schedules', array($this, 'add_schedules'));
     add_action($this->hook, array($this, 'update_profile'));
   }
 
-  public function activate()
+  /**
+   * Activate the scheduler by setting up the cron job
+   *
+   * @return void
+   */
+  public function activate(): void
   {
     if (!wp_next_scheduled($this->hook)) {
       wp_schedule_event(time(), 'weekly', $this->hook);
     }
   }
 
-  public function deactivate()
+  /**
+   * Deactivate the scheduler by removing the cron job
+   *
+   * @return void
+   */
+  public function deactivate(): void
   {
     wp_clear_scheduled_hook($this->hook);
   }
@@ -64,6 +79,18 @@ class Scheduler
       return;
     }
 
+    // Check if we're in exponential backoff period
+    $next_retry = get_option('scholar_profile_next_retry', 0);
+    if ($next_retry > time()) {
+      $wait_time = $next_retry - time();
+      wp_scholar_log(sprintf(
+        'Scheduled update skipped: In exponential backoff period. Next retry in %d seconds (%.1f hours)',
+        $wait_time,
+        $wait_time / 3600
+      ));
+      return;
+    }
+
     wp_scholar_log('Starting scheduled profile update for: ' . $options['profile_id']);
     $this->update_data_status('updating', 'Fetching data from Google Scholar...');
 
@@ -89,9 +116,10 @@ class Scheduler
         count($data['publications'])
       ));
 
-      // Clear any previous error status and details
+      // Clear any previous error status, details, and backoff timer
       delete_option('scholar_profile_consecutive_failures');
       delete_option('scholar_profile_last_error_details');
+      delete_option('scholar_profile_next_retry');
 
       wp_scholar_log(sprintf(
         'Google Scholar Profile updated for ID: %s at %s - Found %d publications',
@@ -114,13 +142,43 @@ class Scheduler
   }
 
   /**
-   * Handle scraping failures with enhanced error information
+   * Calculate retry delay based on number of consecutive failures (exponential backoff)
+   */
+  private function calculate_retry_delay($failure_count)
+  {
+    if ($failure_count < self::FAILURE_THRESHOLD_FOR_BACKOFF) {
+      return 0; // No delay for first few failures
+    }
+
+    // Exponential backoff: 2^(failures - threshold) * base_delay
+    $backoff_factor = $failure_count - self::FAILURE_THRESHOLD_FOR_BACKOFF + 1;
+    $delay = self::BASE_RETRY_DELAY * pow(2, $backoff_factor - 1);
+
+    // Cap at maximum delay
+    return min($delay, self::MAX_RETRY_DELAY);
+  }
+
+  /**
+   * Handle scraping failures with enhanced error information and exponential backoff
    */
   private function handle_scraping_failure($profile_id, $error_details = null)
   {
     $consecutive_failures = get_option('scholar_profile_consecutive_failures', 0);
     $consecutive_failures++;
     update_option('scholar_profile_consecutive_failures', $consecutive_failures);
+
+    // Calculate and apply exponential backoff delay
+    $retry_delay = $this->calculate_retry_delay($consecutive_failures);
+    if ($retry_delay > 0) {
+      $next_retry = time() + $retry_delay;
+      update_option('scholar_profile_next_retry', $next_retry);
+      wp_scholar_log(sprintf(
+        "Applying exponential backoff: next retry in %d seconds (%.1f hours) after %d failures",
+        $retry_delay,
+        $retry_delay / 3600,
+        $consecutive_failures
+      ));
+    }
 
     $existing_data = get_option('scholar_profile_data');
     $has_existing_data = !empty($existing_data) && !empty($existing_data['name']);
@@ -184,7 +242,8 @@ class Scheduler
     $last_update = get_option('scholar_profile_last_update', 0);
     $data_age_days = $last_update ? (time() - $last_update) / DAY_IN_SECONDS : 999;
 
-    if ($data_age_days > 90) { // Data older than 90 days
+    // Use constant from Settings class for data age threshold
+    if ($data_age_days > \WPScholar\Settings::DATA_STALE_AGE_DAYS) {
       wp_scholar_log("Considering data too old ($data_age_days days) - marking for manual review");
 
       $error_summary = 'Data is outdated and cannot be updated';
@@ -317,8 +376,12 @@ class Scheduler
 
   /**
    * Update data status for tracking
+   *
+   * @param string $status Status type: 'success', 'stale', 'error', 'updating'
+   * @param string $message Optional status message
+   * @return void
    */
-  public function update_data_status($status, $message = '')
+  public function update_data_status(string $status, string $message = ''): void
   {
     $status_data = array(
       'status' => $status, // 'success', 'stale', 'error', 'updating'
@@ -333,8 +396,10 @@ class Scheduler
 
   /**
    * Get current data status
+   *
+   * @return array Status data with keys: status, message, timestamp, consecutive_failures
    */
-  public function get_data_status()
+  public function get_data_status(): array
   {
     return get_option('scholar_profile_data_status', array(
       'status' => 'unknown',
@@ -346,8 +411,10 @@ class Scheduler
 
   /**
    * Check if data is stale based on age and status
+   *
+   * @return bool True if data is stale, false otherwise
    */
-  public function is_data_stale()
+  public function is_data_stale(): bool
   {
     $status = $this->get_data_status();
     $last_update = get_option('scholar_profile_last_update', 0);
@@ -380,8 +447,10 @@ class Scheduler
 
   /**
    * Clear stale data manually
+   *
+   * @return bool Always returns true
    */
-  public function clear_stale_data()
+  public function clear_stale_data(): bool
   {
     delete_option('scholar_profile_data');
     delete_option('scholar_profile_last_update');
@@ -393,19 +462,34 @@ class Scheduler
     return true;
   }
 
-  public function reschedule()
+  /**
+   * Reschedule the cron job (deactivate and reactivate)
+   *
+   * @return void
+   */
+  public function reschedule(): void
   {
     $this->deactivate();
     $this->activate();
   }
 
+  /**
+   * Get the timestamp of the next scheduled update
+   *
+   * @return int|false Timestamp of next scheduled event or false if not scheduled
+   */
   public function get_next_scheduled()
   {
     return wp_next_scheduled($this->hook);
   }
 
-  public function force_update()
+  /**
+   * Force an immediate profile update
+   *
+   * @return void
+   */
+  public function force_update(): void
   {
-    return $this->update_profile();
+    $this->update_profile();
   }
 }

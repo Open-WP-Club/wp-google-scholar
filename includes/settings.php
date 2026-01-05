@@ -7,6 +7,13 @@ class Settings
   private $option_name = 'scholar_profile_settings';
   private $page_slug = 'scholar-profile-settings';
 
+  // Constants for validation and rate limiting
+  private const REFRESH_COOLDOWN_SECONDS = 300; // 5 minutes
+  private const MAX_CONSECUTIVE_FAILURES_THRESHOLD = 5;
+  private const MIN_PROFILE_ID_LENGTH = 8;
+  private const MAX_PROFILE_ID_LENGTH = 20;
+  public const DATA_STALE_AGE_DAYS = 90; // Public so Scheduler can access it
+
   public function __construct()
   {
     add_action('admin_menu', array($this, 'add_menu_page'));
@@ -66,8 +73,12 @@ class Settings
       $profile_id = sanitize_text_field(trim($input['profile_id']));
 
       // Check length (Google Scholar IDs are typically 12 characters, but allow some variation)
-      if (strlen($profile_id) < 8 || strlen($profile_id) > 20) {
-        $validation_errors[] = __('Profile ID should be between 8-20 characters long.', 'scholar-profile');
+      if (strlen($profile_id) < self::MIN_PROFILE_ID_LENGTH || strlen($profile_id) > self::MAX_PROFILE_ID_LENGTH) {
+        $validation_errors[] = sprintf(
+          __('Profile ID should be between %d-%d characters long.', 'scholar-profile'),
+          self::MIN_PROFILE_ID_LENGTH,
+          self::MAX_PROFILE_ID_LENGTH
+        );
       }
       // Check format - only allow letters, numbers, underscores, and hyphens
       elseif (!preg_match('/^[a-zA-Z0-9_-]+$/', $profile_id)) {
@@ -119,13 +130,12 @@ class Settings
       wp_die(__('You do not have sufficient permissions to access this page.'));
     }
 
-    // Rate limiting: Prevent refreshes more than once every 5 minutes
+    // Rate limiting: Prevent refreshes more than once every few minutes
     $last_manual_refresh = get_option('scholar_profile_last_manual_refresh', 0);
-    $cooldown_period = 5 * 60; // 5 minutes in seconds
     $time_since_last = time() - $last_manual_refresh;
 
-    if ($time_since_last < $cooldown_period) {
-      $minutes_remaining = ceil(($cooldown_period - $time_since_last) / 60);
+    if ($time_since_last < self::REFRESH_COOLDOWN_SECONDS) {
+      $minutes_remaining = ceil((self::REFRESH_COOLDOWN_SECONDS - $time_since_last) / 60);
       wp_redirect(add_query_arg(
         array(
           'page' => $this->page_slug,

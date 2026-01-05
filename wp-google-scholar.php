@@ -4,7 +4,7 @@
  * Plugin Name: Google Scholar Profile Display
  * Plugin URI: https://openwpclub.com/
  * Description: Displays Google Scholar profile information using shortcode [scholar_profile]
- * Version: 1.3.5
+ * Version: 1.4.0
  * Author: OpenWPClub.com
  * Author URI: https://openwpclub.com/
  * License: GPL v2 or later
@@ -20,9 +20,10 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('WP_SCHOLAR_VERSION', '1.3.5');
+define('WP_SCHOLAR_VERSION', '1.4.0');
 define('WP_SCHOLAR_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('WP_SCHOLAR_PLUGIN_URL', plugin_dir_url(__FILE__));
+define('WP_SCHOLAR_MAX_CONSECUTIVE_FAILURES', 5);
 
 // Autoload classes
 spl_autoload_register('wp_scholar_autoload');
@@ -251,8 +252,8 @@ function wp_scholar_admin_notices()
   $consecutive_failures = get_option('scholar_profile_consecutive_failures', 0);
   $options = get_option('scholar_profile_settings');
 
-  // Show notice for persistent failures (5+ consecutive)
-  if ($consecutive_failures >= 5 && !empty($options['profile_id'])) {
+  // Show notice for persistent failures
+  if ($consecutive_failures >= WP_SCHOLAR_MAX_CONSECUTIVE_FAILURES && !empty($options['profile_id'])) {
     $current_screen = get_current_screen();
 
     // Don't show on the plugin's own settings page (to avoid duplicate notices)
