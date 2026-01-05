@@ -583,11 +583,13 @@ class Shortcode
 
     $coauthor_count = count($data['coauthors']);
 
+    // translators: %d is the number of co-authors
+    $coauthor_text = sprintf(_n('%d co-author', '%d co-authors', $coauthor_count, 'wp-google-scholar'), $coauthor_count);
+
     echo '<div class="scholar-card scholar-coauthors">
             <div class="scholar-card-header">
                 <h2 class="scholar-card-title">' . __('Co-authors', 'wp-google-scholar') . '</h2>
-                // translators: %d is the number of co-authors
-                <div class="scholar-card-info">' . sprintf(_n('%d co-author', '%d co-authors', $coauthor_count, 'wp-google-scholar'), $coauthor_count) . '</div>
+                <div class="scholar-card-info">' . $coauthor_text . '</div>
             </div>
             <div class="scholar-card-content">
                 <div class="scholar-coauthor-list">';
