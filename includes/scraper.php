@@ -4,23 +4,37 @@ namespace WPScholar;
 
 class Scraper
 {
-  private $max_publications = 200; // Reasonable limit to prevent excessive requests
-  private $page_size = 20; // Google Scholar shows 20 publications per page
-  private $request_delay = 1; // Delay between requests in seconds
+  // Configuration constants
+  private const DEFAULT_MAX_PUBLICATIONS = 200;
+  private const DEFAULT_PAGE_SIZE = 20;
+  private const DEFAULT_REQUEST_DELAY = 1; // seconds
+  private const MAX_IMAGE_SIZE_BYTES = 5242880; // 5MB
+  private const MIN_IMAGE_SIZE_BYTES = 100;
+  private const MAX_SCRAPING_PAGES = 25;
+  private const HTTP_TIMEOUT_SECONDS = 30;
+  private const IMAGE_CACHE_DURATION = 86400; // 24 hours
+
+  private $max_publications = self::DEFAULT_MAX_PUBLICATIONS;
+  private $page_size = self::DEFAULT_PAGE_SIZE;
+  private $request_delay = self::DEFAULT_REQUEST_DELAY;
   private $last_error_details = null; // Store detailed error information
 
   /**
    * Get detailed error information from the last failed request
+   *
+   * @return array|null Error details array or null if no error
    */
-  public function get_last_error_details()
+  public function get_last_error_details(): ?array
   {
     return $this->last_error_details;
   }
 
   /**
    * Clear stored error details
+   *
+   * @return void
    */
-  public function clear_error_details()
+  public function clear_error_details(): void
   {
     $this->last_error_details = null;
   }
@@ -113,7 +127,7 @@ class Scraper
 
       // Check file size (should be reasonable for an avatar)
       $file_size = filesize($file_array['tmp_name']);
-      if ($file_size === false || $file_size < 100) {
+      if ($file_size === false || $file_size < self::MIN_IMAGE_SIZE_BYTES) {
         wp_scholar_log("Avatar file too small or unreadable: {$file_size} bytes");
         if ($cleanup_temp && file_exists($file_array['tmp_name'])) {
           unlink($file_array['tmp_name']);
@@ -121,7 +135,7 @@ class Scraper
         return '';
       }
 
-      if ($file_size > 5 * 1024 * 1024) { // 5MB limit
+      if ($file_size > self::MAX_IMAGE_SIZE_BYTES) {
         wp_scholar_log("Avatar file too large: {$file_size} bytes");
         if ($cleanup_temp && file_exists($file_array['tmp_name'])) {
           unlink($file_array['tmp_name']);
@@ -142,9 +156,16 @@ class Scraper
       }
 
       // Additional image validation using getimagesize
+      // Validate that the file exists before checking if it's an image
+      if (!file_exists($file_array['tmp_name'])) {
+        wp_scholar_log('Downloaded file does not exist', 'warning');
+        return '';
+      }
+
+      // Check if it's a valid image (suppress warnings for invalid files)
       $image_info = @getimagesize($file_array['tmp_name']);
-      if (!$image_info) {
-        wp_scholar_log("Avatar file is not a valid image");
+      if ($image_info === false) {
+        wp_scholar_log("Avatar file is not a valid image", 'warning');
         if ($cleanup_temp && file_exists($file_array['tmp_name'])) {
           unlink($file_array['tmp_name']);
         }
@@ -173,6 +194,19 @@ class Scraper
         return '';
       }
 
+      // Generate optimized image sizes (WordPress will create thumbnails automatically)
+      $file_path = get_attached_file($attach_id);
+      if ($file_path) {
+        require_once(ABSPATH . 'wp-admin/includes/image.php');
+        $attachment_metadata = wp_generate_attachment_metadata($attach_id, $file_path);
+        if (false === $attachment_metadata) {
+          wp_scholar_log("Failed to generate attachment metadata for attachment ID: $attach_id", 'warning');
+        } else {
+          wp_update_attachment_metadata($attach_id, $attachment_metadata);
+          wp_scholar_log("Generated optimized image thumbnails for attachment ID: $attach_id");
+        }
+      }
+
       // Add enhanced meta for better caching and tracking
       update_post_meta($attach_id, '_scholar_profile_id', $profile_id);
       update_post_meta($attach_id, '_scholar_image_url', $image_url);
@@ -184,8 +218,8 @@ class Scraper
       $attachment_url = wp_get_attachment_url($attach_id);
 
       if ($attachment_url) {
-        // Cache the result for 24 hours
-        set_transient('scholar_image_download_' . $url_hash, $attachment_url, 24 * HOUR_IN_SECONDS);
+        // Cache the result
+        set_transient('scholar_image_download_' . $url_hash, $attachment_url, self::IMAGE_CACHE_DURATION);
         wp_scholar_log("Successfully downloaded and cached avatar with hash: $url_hash");
         return $attachment_url;
       } else {
@@ -268,7 +302,7 @@ class Scraper
     $processed_url = $this->process_google_scholar_avatar_url($image_url);
 
     // Download with enhanced options
-    $temp_file = download_url($processed_url, 300, false);
+    $temp_file = download_url($processed_url, self::HTTP_TIMEOUT_SECONDS, false);
 
     if (is_wp_error($temp_file)) {
       $error_message = $temp_file->get_error_message();
@@ -322,15 +356,14 @@ class Scraper
 
     // Try to use WordPress HTTP API with custom headers
     $response = wp_remote_get($original_url, array(
-      'timeout' => 30,
+      'timeout' => self::HTTP_TIMEOUT_SECONDS,
       'headers' => array(
         'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         'Accept' => 'image/webp,image/apng,image/*,*/*;q=0.8',
         'Accept-Language' => 'en-US,en;q=0.9',
         'Cache-Control' => 'no-cache',
         'Referer' => 'https://scholar.google.com/'
-      ),
-      'sslverify' => false
+      )
     ));
 
     if (is_wp_error($response)) {
@@ -394,7 +427,13 @@ class Scraper
     return true;
   }
 
-  public function scrape($profile_id)
+  /**
+   * Scrape Google Scholar profile data
+   *
+   * @param string $profile_id The Google Scholar profile ID
+   * @return array|false Profile data array on success, false on failure
+   */
+  public function scrape(string $profile_id)
   {
     if (empty($profile_id)) {
       wp_scholar_log("Scrape failed: Empty profile ID");
@@ -412,7 +451,7 @@ class Scraper
       // First, get the main profile page to extract basic info
       $main_data = $this->scrape_main_profile($profile_id);
       if (!$main_data) {
-        wp_scholar_log("Failed to scrape main profile data for: $profile_id");
+        wp_scholar_log("Failed to scrape main profile data for: $profile_id", 'error');
         return false;
       }
 
@@ -440,7 +479,7 @@ class Scraper
     wp_scholar_log("Fetching main profile from: $url");
 
     $response = wp_remote_get($url, array(
-      'timeout' => 30,
+      'timeout' => self::HTTP_TIMEOUT_SECONDS,
       'headers' => array(
         'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
       )
@@ -448,7 +487,7 @@ class Scraper
 
     if (is_wp_error($response)) {
       $error_message = $response->get_error_message();
-      wp_scholar_log('Error fetching main profile - ' . $error_message);
+      wp_scholar_log('Error fetching main profile - ' . $error_message, 'error');
 
       // Store detailed error information
       $this->last_error_details = array(
@@ -622,8 +661,8 @@ class Scraper
       }
 
       // Safety check to prevent infinite loops
-      if ($page_number > 25) {
-        wp_scholar_log("Reached maximum page limit (25 pages)");
+      if ($page_number > self::MAX_SCRAPING_PAGES) {
+        wp_scholar_log(sprintf("Reached maximum page limit (%d pages)", self::MAX_SCRAPING_PAGES));
         break;
       }
     }
@@ -637,14 +676,14 @@ class Scraper
     $url = "https://scholar.google.com/citations?user=" . urlencode($profile_id) . "&hl=en&cstart=" . $start . "&pagesize=" . $this->page_size;
 
     $response = wp_remote_get($url, array(
-      'timeout' => 30,
+      'timeout' => self::HTTP_TIMEOUT_SECONDS,
       'headers' => array(
         'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36'
       )
     ));
 
     if (is_wp_error($response)) {
-      wp_scholar_log('Error fetching publications page - ' . $response->get_error_message());
+      wp_scholar_log('Error fetching publications page - ' . $response->get_error_message(), 'error');
       return array();
     }
 
@@ -801,7 +840,7 @@ class Scraper
   {
     $doc = new \DOMDocument();
     libxml_use_internal_errors(true);
-    @$doc->loadHTML($html);
+    $doc->loadHTML($html);
     libxml_clear_errors();
     $xpath = new \DOMXPath($doc);
 
@@ -828,7 +867,7 @@ class Scraper
 
     // Validate that we extracted meaningful data
     if (empty($data['name'])) {
-      wp_scholar_log("Failed to extract profile name - page may have changed structure");
+      wp_scholar_log("Failed to extract profile name - page may have changed structure", 'warning');
 
       // Log more info about the page structure for debugging
       $name_elements = $xpath->query("//div[@id='gsc_prf_in']");
@@ -849,7 +888,7 @@ class Scraper
   {
     $doc = new \DOMDocument();
     libxml_use_internal_errors(true);
-    @$doc->loadHTML($html);
+    $doc->loadHTML($html);
     libxml_clear_errors();
     $xpath = new \DOMXPath($doc);
 
@@ -998,8 +1037,12 @@ class Scraper
     wp_scholar_log("Extracted " . count($data['coauthors']) . " coauthors");
   }
 
-  // Public method to get configuration
-  public function get_config()
+  /**
+   * Get current scraper configuration
+   *
+   * @return array Configuration array with max_publications, page_size, and request_delay
+   */
+  public function get_config(): array
   {
     return array(
       'max_publications' => $this->max_publications,
@@ -1008,8 +1051,13 @@ class Scraper
     );
   }
 
-  // Public method to set configuration
-  public function set_config($config)
+  /**
+   * Set scraper configuration
+   *
+   * @param array $config Configuration array with optional keys: max_publications, page_size, request_delay
+   * @return void
+   */
+  public function set_config(array $config): void
   {
     if (isset($config['max_publications'])) {
       $this->max_publications = max(20, min(500, intval($config['max_publications'])));
@@ -1025,8 +1073,12 @@ class Scraper
 
   /**
    * Clean up old cached images for a profile (optional method for maintenance)
+   *
+   * @param string $profile_id The Google Scholar profile ID
+   * @param int $days_old Number of days old for cleanup threshold (default: 30)
+   * @return int Number of images successfully deleted (attachments for which deletion fails are not counted)
    */
-  public function cleanup_old_images($profile_id, $days_old = 30)
+  public function cleanup_old_images(string $profile_id, int $days_old = 30): int
   {
     $old_attachments = get_posts(array(
       'post_type' => 'attachment',

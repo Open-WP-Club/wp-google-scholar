@@ -2,10 +2,21 @@
 
 namespace WPScholar;
 
+if (!defined('ABSPATH')) {
+  exit; // Exit if accessed directly
+}
+
 class Settings
 {
   private $option_name = 'scholar_profile_settings';
   private $page_slug = 'scholar-profile-settings';
+
+  // Constants for validation and rate limiting
+  private const REFRESH_COOLDOWN_SECONDS = 300; // 5 minutes
+  private const MAX_CONSECUTIVE_FAILURES_THRESHOLD = 5;
+  private const MIN_PROFILE_ID_LENGTH = 8;
+  private const MAX_PROFILE_ID_LENGTH = 20;
+  public const DATA_STALE_AGE_DAYS = 90; // Public so Scheduler can access it
 
   public function __construct()
   {
@@ -23,8 +34,8 @@ class Settings
   public function add_menu_page()
   {
     add_options_page(
-      __('Google Scholar Profile Settings', 'scholar-profile'),
-      __('Scholar Profile', 'scholar-profile'),
+      __('Google Scholar Profile Settings', 'wp-google-scholar'),
+      __('Scholar Profile', 'wp-google-scholar'),
       'manage_options',
       $this->page_slug,
       array($this, 'render_settings_page')
@@ -49,12 +60,12 @@ class Settings
 
     // Verify user permissions
     if (!current_user_can('manage_options')) {
-      wp_die(__('You do not have sufficient permissions to access this page.'));
+      wp_die(__('You do not have sufficient permissions to access this page.', 'wp-google-scholar'));
     }
 
     // Verify nonce
     if (!wp_verify_nonce($_POST['scholar_settings_nonce'], 'scholar_profile_settings')) {
-      wp_die(__('Security check failed.'));
+      wp_die(__('Security check failed.', 'wp-google-scholar'));
     }
 
     // Sanitize and validate settings
@@ -66,18 +77,23 @@ class Settings
       $profile_id = sanitize_text_field(trim($input['profile_id']));
 
       // Check length (Google Scholar IDs are typically 12 characters, but allow some variation)
-      if (strlen($profile_id) < 8 || strlen($profile_id) > 20) {
-        $validation_errors[] = __('Profile ID should be between 8-20 characters long.', 'scholar-profile');
+      if (strlen($profile_id) < self::MIN_PROFILE_ID_LENGTH || strlen($profile_id) > self::MAX_PROFILE_ID_LENGTH) {
+        // translators: %1$d is minimum length, %2$d is maximum length
+        $validation_errors[] = sprintf(
+          __('Profile ID should be between %1$d-%2$d characters long.', 'wp-google-scholar'),
+          self::MIN_PROFILE_ID_LENGTH,
+          self::MAX_PROFILE_ID_LENGTH
+        );
       }
       // Check format - only allow letters, numbers, underscores, and hyphens
       elseif (!preg_match('/^[a-zA-Z0-9_-]+$/', $profile_id)) {
-        $validation_errors[] = __('Profile ID can only contain letters, numbers, underscores, and hyphens.', 'scholar-profile');
+        $validation_errors[] = __('Profile ID can only contain letters, numbers, underscores, and hyphens.', 'wp-google-scholar');
       }
       // Check for common user mistakes
       elseif (strpos($profile_id, 'user=') !== false) {
-        $validation_errors[] = __('Please enter only the Profile ID, not the full URL. Remove "user=" part.', 'scholar-profile');
+        $validation_errors[] = __('Please enter only the Profile ID, not the full URL. Remove "user=" part.', 'wp-google-scholar');
       } elseif (strpos($profile_id, 'scholar.google.com') !== false) {
-        $validation_errors[] = __('Please enter only the Profile ID, not the full URL.', 'scholar-profile');
+        $validation_errors[] = __('Please enter only the Profile ID, not the full URL.', 'wp-google-scholar');
       }
     }
 
@@ -119,13 +135,12 @@ class Settings
       wp_die(__('You do not have sufficient permissions to access this page.'));
     }
 
-    // Rate limiting: Prevent refreshes more than once every 5 minutes
+    // Rate limiting: Prevent refreshes more than once every few minutes
     $last_manual_refresh = get_option('scholar_profile_last_manual_refresh', 0);
-    $cooldown_period = 5 * 60; // 5 minutes in seconds
     $time_since_last = time() - $last_manual_refresh;
 
-    if ($time_since_last < $cooldown_period) {
-      $minutes_remaining = ceil(($cooldown_period - $time_since_last) / 60);
+    if ($time_since_last < self::REFRESH_COOLDOWN_SECONDS) {
+      $minutes_remaining = ceil((self::REFRESH_COOLDOWN_SECONDS - $time_since_last) / 60);
       wp_redirect(add_query_arg(
         array(
           'page' => $this->page_slug,
@@ -213,7 +228,7 @@ class Settings
         $scheduler->update_data_status('error', 'Manual refresh failed and no existing data available.');
       }
 
-      wp_scholar_log("Manual refresh failed for profile: " . $options['profile_id']);
+      wp_scholar_log("Manual refresh failed for profile: " . $options['profile_id'], 'error');
 
       // Store detailed error information for display
       if ($error_details) {
@@ -267,7 +282,7 @@ class Settings
   private function validate_scraped_data($data)
   {
     if (!is_array($data)) {
-      wp_scholar_log("Data validation failed: not an array");
+      wp_scholar_log("Data validation failed: not an array", 'error');
       return false;
     }
 
@@ -329,7 +344,7 @@ class Settings
       if ($_GET['clear'] === 'success') {
         $messages[] = array(
           'type' => 'updated',
-          'message' => __('✓ Stale data cleared successfully!', 'scholar-profile')
+          'message' => __('✓ Stale data cleared successfully!', 'wp-google-scholar')
         );
       }
     }
@@ -338,7 +353,7 @@ class Settings
       if ($_GET['refresh'] === 'success') {
         $messages[] = array(
           'type' => 'updated',
-          'message' => __('✓ Profile data refreshed successfully!', 'scholar-profile')
+          'message' => __('✓ Profile data refreshed successfully!', 'wp-google-scholar')
         );
       } elseif ($_GET['refresh'] === 'failed') {
         // Get enhanced error message based on error type
@@ -355,7 +370,7 @@ class Settings
     elseif (isset($_GET['settings-updated']) && $_GET['settings-updated'] === 'true') {
       $messages[] = array(
         'type' => 'updated',
-        'message' => __('✓ Settings saved successfully!', 'scholar-profile')
+        'message' => __('✓ Settings saved successfully!', 'wp-google-scholar')
       );
     }
 
@@ -364,7 +379,7 @@ class Settings
       $status_message = $data_status['message'] ?: 'Data may be outdated';
       $messages[] = array(
         'type' => 'warning',
-        'message' => '⚠ ' . __('Data Status Warning: ', 'scholar-profile') . $status_message
+        'message' => '⚠ ' . __('Data Status Warning: ', 'wp-google-scholar') . $status_message
       );
     }
 
@@ -382,12 +397,13 @@ class Settings
     if (isset($get_params['message'])) {
       switch ($get_params['message']) {
         case 'no_profile_id':
-          return __('Please enter a Profile ID before refreshing.', 'scholar-profile');
+          return __('Please enter a Profile ID before refreshing.', 'wp-google-scholar');
 
         case 'rate_limited':
           $minutes = isset($get_params['minutes']) ? intval($get_params['minutes']) : 5;
+          // translators: %d is the number of minutes to wait
           return sprintf(
-            __('Please wait %d more minute(s) before refreshing again. This prevents rate limiting from Google Scholar.', 'scholar-profile'),
+            __('Please wait %d more minute(s) before refreshing again. This prevents rate limiting from Google Scholar.', 'wp-google-scholar'),
             $minutes
           );
       }
@@ -404,9 +420,9 @@ class Settings
     // Fallback to generic messages
     $existing_data = get_option('scholar_profile_data');
     if (!empty($existing_data)) {
-      return __('Could not retrieve new data from Google Scholar, but existing data is preserved. Please check the details below and try again later.', 'scholar-profile');
+      return __('Could not retrieve new data from Google Scholar, but existing data is preserved. Please check the details below and try again later.', 'wp-google-scholar');
     } else {
-      return __('Could not retrieve data from Google Scholar. Please check the details below and try again.', 'scholar-profile');
+      return __('Could not retrieve data from Google Scholar. Please check the details below and try again.', 'wp-google-scholar');
     }
   }
 
@@ -426,7 +442,7 @@ class Settings
     }
 
     if (!empty($error_details['suggestions']) && is_array($error_details['suggestions'])) {
-      $message .= '<br><br><strong>' . __('What you can try:', 'scholar-profile') . '</strong>';
+      $message .= '<br><br><strong>' . __('What you can try:', 'wp-google-scholar') . '</strong>';
       $message .= '<ul style="margin-left: 20px; margin-top: 8px;">';
       foreach ($error_details['suggestions'] as $suggestion) {
         $message .= '<li style="margin-bottom: 4px;">' . esc_html($suggestion) . '</li>';
@@ -437,10 +453,10 @@ class Settings
     // Add specific guidance for blocked access (403 errors)
     if ($error_details['type'] === 'blocked_access') {
       $message .= '<br><div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 12px; border-radius: 4px; margin-top: 12px;">';
-      $message .= '<strong>🔒 ' . __('Server Access Blocked', 'scholar-profile') . '</strong><br>';
-      $message .= __('This is the most common issue and is usually temporary. Google Scholar blocks server IPs that make too many requests.', 'scholar-profile');
-      $message .= '<br><strong>' . __('Recommended action:', 'scholar-profile') . '</strong> ';
-      $message .= __('Wait 1-2 hours and try again. If the problem persists, contact your hosting provider.', 'scholar-profile');
+      $message .= '<strong>🔒 ' . __('Server Access Blocked', 'wp-google-scholar') . '</strong><br>';
+      $message .= __('This is the most common issue and is usually temporary. Google Scholar blocks server IPs that make too many requests.', 'wp-google-scholar');
+      $message .= '<br><strong>' . __('Recommended action:', 'wp-google-scholar') . '</strong> ';
+      $message .= __('Wait 1-2 hours and try again. If the problem persists, contact your hosting provider.', 'wp-google-scholar');
       $message .= '</div>';
     }
 
@@ -487,7 +503,7 @@ class Settings
     $settings_link = sprintf(
       '<a href="%s">%s</a>',
       admin_url('options-general.php?page=' . $this->page_slug),
-      __('Settings', 'scholar-profile')
+      __('Settings', 'wp-google-scholar')
     );
     array_unshift($links, $settings_link);
     return $links;

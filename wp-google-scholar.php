@@ -4,7 +4,7 @@
  * Plugin Name: Google Scholar Profile Display
  * Plugin URI: https://openwpclub.com/
  * Description: Displays Google Scholar profile information using shortcode [scholar_profile]
- * Version: 1.3.5
+ * Version: 1.4.0
  * Author: OpenWPClub.com
  * Author URI: https://openwpclub.com/
  * License: GPL v2 or later
@@ -20,9 +20,10 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('WP_SCHOLAR_VERSION', '1.3.5');
+define('WP_SCHOLAR_VERSION', '1.4.0');
 define('WP_SCHOLAR_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('WP_SCHOLAR_PLUGIN_URL', plugin_dir_url(__FILE__));
+define('WP_SCHOLAR_MAX_CONSECUTIVE_FAILURES', 5);
 
 // Autoload classes
 spl_autoload_register('wp_scholar_autoload');
@@ -220,10 +221,45 @@ function wp_scholar_uninstall()
   }
 }
 
-// Enhanced debug logging function
+/**
+ * Enhanced logging function with configurable logging levels
+ *
+ * @param string|array $message Message to log (string or array/object)
+ * @param string $level Log level: 'debug', 'info', 'warning', 'error'
+ * @return void
+ */
 function wp_scholar_log($message, $level = 'info')
 {
-  if (WP_DEBUG === true && WP_DEBUG_LOG === true) {
+  // Define logging level priorities
+  $levels = array(
+    'debug' => 0,
+    'info' => 1,
+    'warning' => 2,
+    'error' => 3
+  );
+
+  // Get minimum logging level from options (defaults to 'info')
+  // Can be set via: update_option('scholar_profile_log_level', 'debug');
+  $min_level = get_option('scholar_profile_log_level', 'info');
+
+  // If WP_DEBUG is true, log everything (debug level)
+  if (WP_DEBUG === true) {
+    $min_level = 'debug';
+  }
+
+  // Only log if WP_DEBUG_LOG is enabled
+  if (WP_DEBUG_LOG !== true) {
+    return;
+  }
+
+  // Validate levels
+  if (!isset($levels[$level]) || !isset($levels[$min_level])) {
+    $level = 'info';
+    $min_level = 'info';
+  }
+
+  // Only log if message level >= minimum level
+  if ($levels[$level] >= $levels[$min_level]) {
     $timestamp = current_time('Y-m-d H:i:s');
     $formatted_message = sprintf(
       '[%s] [Google Scholar Profile] [%s] %s',
@@ -251,8 +287,8 @@ function wp_scholar_admin_notices()
   $consecutive_failures = get_option('scholar_profile_consecutive_failures', 0);
   $options = get_option('scholar_profile_settings');
 
-  // Show notice for persistent failures (5+ consecutive)
-  if ($consecutive_failures >= 5 && !empty($options['profile_id'])) {
+  // Show notice for persistent failures
+  if ($consecutive_failures >= WP_SCHOLAR_MAX_CONSECUTIVE_FAILURES && !empty($options['profile_id'])) {
     $current_screen = get_current_screen();
 
     // Don't show on the plugin's own settings page (to avoid duplicate notices)
@@ -260,28 +296,29 @@ function wp_scholar_admin_notices()
       $error_type = isset($error_details['type']) ? $error_details['type'] : 'unknown';
       $settings_url = admin_url('options-general.php?page=scholar-profile-settings');
 
+      // translators: %d is the number of consecutive failures
       $notice_message = sprintf(
-        __('Google Scholar Profile: %d consecutive update failures detected. ', 'scholar-profile'),
+        __('Google Scholar Profile: %d consecutive update failures detected. ', 'wp-google-scholar'),
         $consecutive_failures
       );
 
       // Add specific guidance based on error type
       switch ($error_type) {
         case 'blocked_access':
-          $notice_message .= __('Your server IP appears to be blocked by Google Scholar.', 'scholar-profile');
+          $notice_message .= __('Your server IP appears to be blocked by Google Scholar.', 'wp-google-scholar');
           break;
         case 'profile_not_found':
-          $notice_message .= __('The configured profile could not be found.', 'scholar-profile');
+          $notice_message .= __('The configured profile could not be found.', 'wp-google-scholar');
           break;
         default:
-          $notice_message .= __('Please check your configuration.', 'scholar-profile');
+          $notice_message .= __('Please check your configuration.', 'wp-google-scholar');
           break;
       }
 
       $notice_message .= sprintf(
         ' <a href="%s">%s</a>',
         esc_url($settings_url),
-        __('View Settings', 'scholar-profile')
+        __('View Settings', 'wp-google-scholar')
       );
 
       echo '<div class="notice notice-warning"><p>' . wp_kses($notice_message, array(
@@ -323,8 +360,8 @@ function wp_scholar_plugin_row_meta($links, $file)
 {
   if (plugin_basename(__FILE__) === $file) {
     $row_meta = array(
-      'docs' => '<a href="https://github.com/Open-WP-Club/wp-google-scholar" target="_blank">' . __('Documentation', 'scholar-profile') . '</a>',
-      'support' => '<a href="https://github.com/Open-WP-Club/wp-google-scholar/issues" target="_blank">' . __('Support', 'scholar-profile') . '</a>',
+      'docs' => '<a href="https://github.com/Open-WP-Club/wp-google-scholar" target="_blank">' . __('Documentation', 'wp-google-scholar') . '</a>',
+      'support' => '<a href="https://github.com/Open-WP-Club/wp-google-scholar/issues" target="_blank">' . __('Support', 'wp-google-scholar') . '</a>',
     );
     return array_merge($links, $row_meta);
   }

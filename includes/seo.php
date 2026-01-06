@@ -2,6 +2,10 @@
 
 namespace WPScholar;
 
+if (!defined('ABSPATH')) {
+  exit; // Exit if accessed directly
+}
+
 class SEO
 {
   private $has_output = false; // Prevent duplicate output
